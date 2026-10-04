@@ -1,7 +1,10 @@
 """Retriever: chunks the corpus, embeds it once and answers queries with ranked, cut-off fragments."""
 from __future__ import annotations
 
-from collections.abc import Sequence
+import hashlib
+import json
+from collections.abc import Callable, Sequence
+from dataclasses import asdict
 from pathlib import Path
 
 import numpy as np
@@ -14,17 +17,18 @@ from rag.selection import ScoredChunk, select
 
 
 class Retriever:
-    def __init__(self, chunks: Sequence[Chunk], encoder: Encoder, config: RetrieverConfig):
+    def __init__(self, chunks: Sequence[Chunk], encoder: Encoder, config: RetrieverConfig,
+                 cache_dir: Path | None = None):
         self.chunks = list(chunks)
         self.config = config
         self._encoder = encoder
-        self._passages = [chunk.text for chunk in self.chunks]
-        self._embeddings = encoder.encode_passages(self._passages)
+        self._passages = [chunk.render(config.chunking.metadata) for chunk in self.chunks]
+        self._embeddings = _cached(cache_dir, asdict(config.encoder), self._passages, encoder.encode_passages)
 
     @classmethod
-    def from_config(cls, config: RetrieverConfig, base_dir: Path) -> Retriever:
+    def from_config(cls, config: RetrieverConfig, base_dir: Path, cache_dir: Path | None = None) -> Retriever:
         documents = load_corpus(Path(base_dir) / config.corpus_dir)
-        return cls(chunk_corpus(documents, config.chunking), build_encoder(config.encoder), config)
+        return cls(chunk_corpus(documents, config.chunking), build_encoder(config.encoder), config, cache_dir)
 
     def rank_many(self, queries: Sequence[str]) -> list[list[ScoredChunk]]:
         """Every chunk for every query, by descending cosine similarity (ties in corpus order)."""
@@ -39,3 +43,23 @@ class Retriever:
 
     def search(self, query: str) -> list[ScoredChunk]:
         return self.search_many([query])[0]
+
+
+def _cached(cache_dir: Path | None, encoder_identity: dict, texts: list[str],
+            encode: Callable[[list[str]], np.ndarray]) -> np.ndarray:
+    """Passage embeddings stored on disk under a hash of the encoder config and the exact texts.
+
+    Any change to the corpus, the chunking or the encoder yields a new key, so the cache cannot go stale.
+    """
+    if cache_dir is None:
+        return encode(texts)
+    payload = json.dumps([encoder_identity, texts], ensure_ascii=False, sort_keys=True).encode("utf-8")
+    path = Path(cache_dir) / f"{hashlib.sha256(payload).hexdigest()}.npy"
+    if path.exists():
+        return np.load(path)
+    embeddings = encode(texts)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    partial = path.with_name(f"{path.stem}.partial.npy")
+    np.save(partial, embeddings)
+    partial.replace(path)
+    return embeddings
