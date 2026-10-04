@@ -1,0 +1,6 @@
+{
+  "corpus_dir": "datos/corpus",
+  "encoder": {"type": "hashing_bow"},
+  "chunking": {"strategy": "paragraph"},
+  "selection": {"top_k": 3}
+}
