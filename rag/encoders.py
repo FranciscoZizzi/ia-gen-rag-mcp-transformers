@@ -45,6 +45,79 @@ class HashingBowEncoder:
         return l2_normalize(vectors)
 
 
+class MeanPoolingEncoder:
+    """A raw transformer encoder (BERT, not trained for similarity): masked mean of the last hidden layer.
+
+    The mission's mandatory baseline. Padding positions are excluded from the mean.
+    """
+
+    def __init__(self, model: str, revision: str | None = None, query_prefix: str = "", passage_prefix: str = "",
+                 max_seq_length: int | None = None, batch_size: int = 16):
+        import torch
+        from transformers import AutoModel, AutoTokenizer
+        from transformers.utils import logging as transformers_logging
+
+        # Loading only the encoder leaves the masked-LM head unused, which transformers reports at length.
+        transformers_logging.set_verbosity_error()
+        self._torch = torch
+        self._tokenizer = AutoTokenizer.from_pretrained(model, revision=revision)
+        self._model = AutoModel.from_pretrained(model, revision=revision).eval()
+        # Some tokenizers report a huge sentinel instead of their real limit; BERT's is 512 positions.
+        self.max_seq_length = max_seq_length or min(512, self._tokenizer.model_max_length)
+        self.query_prefix, self.passage_prefix, self.batch_size = query_prefix, passage_prefix, batch_size
+
+    def encode_queries(self, texts: Sequence[str]) -> np.ndarray:
+        return self._encode([self.query_prefix + text for text in texts])
+
+    def encode_passages(self, texts: Sequence[str]) -> np.ndarray:
+        return self._encode([self.passage_prefix + text for text in texts])
+
+    def passage_token_counts(self, texts: Sequence[str]) -> list[int]:
+        return [len(self._tokenizer(self.passage_prefix + text)["input_ids"]) for text in texts]
+
+    def _encode(self, texts: list[str]) -> np.ndarray:
+        pooled = []
+        for start in range(0, len(texts), self.batch_size):
+            tokens = self._tokenizer(texts[start:start + self.batch_size], padding=True, truncation=True,
+                                     max_length=self.max_seq_length, return_tensors="pt")
+            with self._torch.inference_mode():
+                hidden = self._model(**tokens).last_hidden_state  # (batch, tokens, dim)
+            mask = tokens["attention_mask"].unsqueeze(-1).to(hidden.dtype)
+            pooled.append(((hidden * mask).sum(dim=1) / mask.sum(dim=1).clamp(min=1e-9)).float().numpy())
+        return l2_normalize(np.vstack(pooled))
+
+
+class SentenceTransformerEncoder:
+    """A model trained for sentence embeddings (MiniLM, E5, BGE-M3), through sentence-transformers.
+
+    E5 models expect "query: " and "passage: " prefixes; they come from the encoder config.
+    """
+
+    def __init__(self, model: str, revision: str | None = None, query_prefix: str = "", passage_prefix: str = "",
+                 max_seq_length: int | None = None, batch_size: int = 16):
+        from sentence_transformers import SentenceTransformer
+
+        self._model = SentenceTransformer(model, revision=revision, device="cpu")
+        if max_seq_length:
+            self._model.max_seq_length = max_seq_length
+        self.max_seq_length = self._model.max_seq_length
+        self.query_prefix, self.passage_prefix, self.batch_size = query_prefix, passage_prefix, batch_size
+
+    def encode_queries(self, texts: Sequence[str]) -> np.ndarray:
+        return self._encode([self.query_prefix + text for text in texts])
+
+    def encode_passages(self, texts: Sequence[str]) -> np.ndarray:
+        return self._encode([self.passage_prefix + text for text in texts])
+
+    def passage_token_counts(self, texts: Sequence[str]) -> list[int]:
+        return [len(self._model.tokenizer(self.passage_prefix + text)["input_ids"]) for text in texts]
+
+    def _encode(self, texts: list[str]) -> np.ndarray:
+        vectors = self._model.encode(texts, batch_size=self.batch_size, normalize_embeddings=True,
+                                     convert_to_numpy=True, show_progress_bar=False)
+        return np.asarray(vectors, dtype=np.float32)
+
+
 def l2_normalize(vectors: np.ndarray) -> np.ndarray:
     norms = np.linalg.norm(vectors, axis=1, keepdims=True)
     return vectors / np.maximum(norms, 1e-12)
@@ -53,4 +126,10 @@ def l2_normalize(vectors: np.ndarray) -> np.ndarray:
 def build_encoder(config: EncoderConfig) -> Encoder:
     if config.type == "hashing_bow":
         return HashingBowEncoder()
-    raise ValueError(f"unknown encoder type {config.type!r}")
+    transformer_encoders = {"mean_pooling": MeanPoolingEncoder, "sentence_transformer": SentenceTransformerEncoder}
+    if config.type not in transformer_encoders:
+        raise ValueError(f"unknown encoder type {config.type!r}; expected hashing_bow or one of {sorted(transformer_encoders)}")
+    if not config.model:
+        raise ValueError(f"encoder type {config.type!r} needs a model")
+    return transformer_encoders[config.type](config.model, config.revision, config.query_prefix, config.passage_prefix,
+                                             config.max_seq_length, config.batch_size)

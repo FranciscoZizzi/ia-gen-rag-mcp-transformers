@@ -9,8 +9,13 @@ from typing import Any
 
 @dataclass(frozen=True)
 class EncoderConfig:
-    type: str
+    type: str  # "mean_pooling" | "sentence_transformer" | "hashing_bow"
     model: str | None = None
+    revision: str | None = None  # Hugging Face commit; pin it in the delivered config
+    query_prefix: str = ""
+    passage_prefix: str = ""
+    max_seq_length: int | None = None  # None keeps the model's own limit
+    batch_size: int = 16
 
 
 @dataclass(frozen=True)
