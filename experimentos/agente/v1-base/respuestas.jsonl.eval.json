@@ -1,0 +1,147 @@
+{
+ "resumen": {
+  "context_relevance": 5.0,
+  "faithfulness": 5.0,
+  "answer_relevance": 5.0,
+  "ruteo": 1.0,
+  "juez": "google/gemini-3.7-flash",
+  "costo_juez_usd": 0.01682
+ },
+ "detalle": [
+  {
+   "id": "A01",
+   "ruteo": 1.0,
+   "herramientas_usadas": [
+    "buscar_documentos"
+   ],
+   "context_relevance": 5,
+   "faithfulness": 5,
+   "answer_relevance": 5,
+   "justificacion": "El contexto contiene la información precisa sobre el horario y las condiciones de visita para los abuelos. La respuesta responde de forma exacta y se encuentra totalmente respaldada por el texto."
+  },
+  {
+   "id": "A02",
+   "ruteo": 1.0,
+   "herramientas_usadas": [
+    "buscar_documentos"
+   ],
+   "context_relevance": 5,
+   "faithfulness": 5,
+   "answer_relevance": 5,
+   "justificacion": "El contexto contiene toda la información necesaria de forma precisa y sin ruido. La respuesta del sistema es completamente fiel a dicho contexto y responde de manera exhaustiva y clara a la pregunta."
+  },
+  {
+   "id": "A03",
+   "ruteo": 1.0,
+   "herramientas_usadas": [
+    "buscar_documentos"
+   ],
+   "context_relevance": 5,
+   "faithfulness": 5,
+   "answer_relevance": 5,
+   "justificacion": "El contexto es exacto y contiene toda la información sin ruido. La respuesta del sistema responde de forma precisa a la pregunta y está totalmente respaldada por el contexto."
+  },
+  {
+   "id": "A04",
+   "ruteo": 1.0,
+   "herramientas_usadas": [
+    "buscar_documentos"
+   ],
+   "context_relevance": 5,
+   "faithfulness": 5,
+   "answer_relevance": 5,
+   "justificacion": "El contexto contiene de forma precisa toda la información requerida y la respuesta es totalmente fiel, respondiendo de manera completa a la pregunta."
+  },
+  {
+   "id": "A05",
+   "ruteo": 1.0,
+   "herramientas_usadas": [
+    "consultar_camas"
+   ],
+   "context_relevance": 5,
+   "faithfulness": 5,
+   "answer_relevance": 5,
+   "justificacion": "El contexto proporciona la información exacta requerida sin contenido superfluo. La respuesta contesta perfectamente la pregunta basándose de forma fiel en los datos recuperados."
+  },
+  {
+   "id": "A06",
+   "ruteo": 1.0,
+   "herramientas_usadas": [
+    "consultar_guardia"
+   ],
+   "context_relevance": 5,
+   "faithfulness": 5,
+   "answer_relevance": 5,
+   "justificacion": "El contexto contiene la información precisa y sin ruido para responder, y la respuesta del sistema es totalmente fiel y contesta exactamente lo preguntado."
+  },
+  {
+   "id": "A07",
+   "ruteo": 1.0,
+   "herramientas_usadas": [
+    "consultar_turnos"
+   ],
+   "context_relevance": 5,
+   "faithfulness": 5,
+   "answer_relevance": 5,
+   "justificacion": "El contexto contiene de forma precisa y sin ruido los turnos disponibles para traumatología, y la respuesta identifica correctamente el primer turno disponible respondiendo a la perfección la consulta."
+  },
+  {
+   "id": "A08",
+   "ruteo": 1.0,
+   "herramientas_usadas": [
+    "consultar_farmacia"
+   ],
+   "context_relevance": 5,
+   "faithfulness": 5,
+   "answer_relevance": 5,
+   "justificacion": "El contexto provee de manera concisa y exacta la información solicitada. La respuesta es completamente fiel al contexto y responde directamente a la pregunta."
+  },
+  {
+   "id": "A09",
+   "ruteo": 1.0,
+   "herramientas_usadas": [
+    "consultar_espera"
+   ],
+   "context_relevance": 5,
+   "faithfulness": 5,
+   "answer_relevance": 5,
+   "justificacion": "El contexto proporciona exactamente la información requerida sin datos superfluos. La respuesta es totalmente fiel al contexto y responde directamente a la pregunta planteada."
+  },
+  {
+   "id": "A10",
+   "ruteo": 1.0,
+   "herramientas_usadas": [
+    "buscar_documentos",
+    "consultar_camas"
+   ],
+   "context_relevance": 5,
+   "faithfulness": 5,
+   "answer_relevance": 5,
+   "justificacion": "Los contextos recuperados contienen la información exacta requerida sin datos irrelevantes, y la respuesta responde fiel y completamente a la pregunta basándose en ellos."
+  },
+  {
+   "id": "A11",
+   "ruteo": 1.0,
+   "herramientas_usadas": [
+    "buscar_documentos",
+    "consultar_turnos"
+   ],
+   "context_relevance": 5,
+   "faithfulness": 5,
+   "answer_relevance": 5,
+   "justificacion": "Los contextos contienen toda la información precisa sin contenido irrelevante, y la respuesta contesta de manera completa, fiel y respaldada todo lo solicitado."
+  },
+  {
+   "id": "A12",
+   "ruteo": 1.0,
+   "herramientas_usadas": [
+    "buscar_documentos",
+    "consultar_farmacia"
+   ],
+   "context_relevance": 5,
+   "faithfulness": 5,
+   "answer_relevance": 5,
+   "justificacion": "Los contextos contienen toda la información necesaria sin datos irrelevantes, y la respuesta responde fielmente y de manera completa a lo consultado."
+  }
+ ]
+}
