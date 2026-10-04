@@ -1,6 +1,8 @@
 """Retriever: the library seam that recuperar.py, buscar_documentos (Part 2) and the MCP server share."""
+from dataclasses import replace
+
 from rag.chunking import chunk_corpus
-from rag.config import ChunkingConfig, EncoderConfig, RetrieverConfig, SelectionConfig
+from rag.config import ChunkingConfig, EncoderConfig, RerankerConfig, RetrieverConfig, SelectionConfig
 from rag.corpus import parse_document
 from rag.encoders import HashingBowEncoder
 from rag.retriever import Retriever
@@ -24,8 +26,8 @@ PARAGRAPHS = ChunkingConfig(strategy="paragraph")
 CHUNKS = chunk_corpus([DOCUMENT], PARAGRAPHS)
 
 
-def lexical_retriever(chunks=CHUNKS, chunking=PARAGRAPHS, top_k=1, **kwargs) -> Retriever:
-    config = RetrieverConfig(EncoderConfig("hashing_bow"), chunking, SelectionConfig(top_k=top_k))
+def lexical_retriever(chunks=CHUNKS, chunking=PARAGRAPHS, top_k=1, reranker_config=None, **kwargs) -> Retriever:
+    config = RetrieverConfig(EncoderConfig("hashing_bow"), chunking, SelectionConfig(top_k=top_k), reranker=reranker_config)
     return Retriever(chunks, kwargs.pop("encoder", HashingBowEncoder()), config, **kwargs)
 
 
@@ -81,3 +83,20 @@ def test_cache_never_serves_embeddings_of_an_older_corpus(tmp_path):
     retriever = lexical_retriever(chunks=edited, cache_dir=tmp_path)
 
     assert retriever.search("carnet de vacunación")[0].text == "- Traer el carnet de vacunación."
+
+
+class ShortestFirstReranker:
+    """Stands in for a cross-encoder at the Hugging Face boundary: prefers shorter passages."""
+
+    def rerank(self, query, candidates):
+        return sorted((replace(scored, score=-float(len(scored.text))) for scored in candidates),
+                      key=lambda scored: -scored.score)
+
+
+def test_a_reranker_reorders_the_best_candidates_by_its_own_scores():
+    retriever = lexical_retriever(reranker_config=RerankerConfig(model="fake", candidates=2),
+                                  reranker=ShortestFirstReranker())
+
+    ranking = retriever.rank_many(["traer la orden médica"])[0]
+
+    assert [scored.text for scored in ranking] == ["Introducción breve.", "- Traer DNI.\n- Traer la orden médica."]

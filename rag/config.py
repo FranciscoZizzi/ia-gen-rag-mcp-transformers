@@ -34,16 +34,27 @@ class SelectionConfig:
 
 
 @dataclass(frozen=True)
+class RerankerConfig:
+    model: str
+    candidates: int = 10  # how many of the bi-encoder's best chunks the cross-encoder re-scores
+    revision: str | None = None
+    batch_size: int = 16
+
+
+@dataclass(frozen=True)
 class RetrieverConfig:
     encoder: EncoderConfig
     chunking: ChunkingConfig = field(default_factory=ChunkingConfig)
     selection: SelectionConfig = field(default_factory=SelectionConfig)
     corpus_dir: str = "datos/corpus"
+    reranker: RerankerConfig | None = None
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> RetrieverConfig:
-        parts = {"encoder": EncoderConfig, "chunking": ChunkingConfig, "selection": SelectionConfig}
-        data = {key: _build(parts[key], value, key) if key in parts else value for key, value in data.items()}
+        parts = {"encoder": EncoderConfig, "chunking": ChunkingConfig, "selection": SelectionConfig,
+                 "reranker": RerankerConfig}
+        data = {key: _build(parts[key], value, key) if key in parts and value is not None else value
+                for key, value in data.items()}
         return _build(cls, data, "retriever")
 
     def to_dict(self) -> dict[str, Any]:
