@@ -16,4 +16,10 @@ class ScoredChunk:
 
 
 def select(ranked: Sequence[ScoredChunk], config: SelectionConfig) -> list[ScoredChunk]:
-    return list(ranked[: config.top_k])
+    """Cut a ranking (best first). The best candidate always stays: zero fragments score zero."""
+    best, rest = list(ranked[:1]), list(ranked[1: config.top_k])
+    if config.min_score is not None:
+        rest = [scored for scored in rest if scored.score >= config.min_score]
+    if config.max_margin is not None and best:
+        rest = [scored for scored in rest if best[0].score - scored.score <= config.max_margin]
+    return best + rest

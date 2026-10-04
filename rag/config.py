@@ -23,6 +23,8 @@ class ChunkingConfig:
 @dataclass(frozen=True)
 class SelectionConfig:
     top_k: int = 1
+    min_score: float | None = None
+    max_margin: float | None = None
 
 
 @dataclass(frozen=True)
