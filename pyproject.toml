@@ -1,0 +1,4 @@
+[tool.pytest.ini_options]
+# atencion/test_atencion.py rewrites sys.argv at import time; never let pytest collect it.
+testpaths = ["tests"]
+pythonpath = ["."]
