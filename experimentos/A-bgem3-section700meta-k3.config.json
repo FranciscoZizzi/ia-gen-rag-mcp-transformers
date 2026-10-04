@@ -1,0 +1,23 @@
+{
+ "encoder": {
+  "type": "sentence_transformer",
+  "model": "BAAI/bge-m3",
+  "revision": null,
+  "query_prefix": "",
+  "passage_prefix": "",
+  "max_seq_length": null,
+  "batch_size": 16
+ },
+ "chunking": {
+  "strategy": "section",
+  "max_chars": 700,
+  "overlap_sentences": 0,
+  "metadata": true
+ },
+ "selection": {
+  "top_k": 3,
+  "min_score": null,
+  "max_margin": null
+ },
+ "corpus_dir": "datos/corpus"
+}

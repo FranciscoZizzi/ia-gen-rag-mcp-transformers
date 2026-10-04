@@ -1,0 +1,7 @@
+{
+  "stage": "A0",
+  "questions": "datos/preguntas_recuperacion_dev.jsonl",
+  "encoders": {"lexical": {"type": "hashing_bow"}},
+  "chunkings": {"paragraph": {"strategy": "paragraph"}},
+  "selections": {"k3": {"top_k": 3}}
+}
