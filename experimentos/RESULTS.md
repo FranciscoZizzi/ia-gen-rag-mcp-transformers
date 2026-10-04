@@ -62,3 +62,6 @@ Preguntas: `datos/preguntas_recuperacion_dev.jsonl`. Generado por `scripts/run_e
 | [C-e5large-section700meta-k3s087](C-e5large-section700meta-k3s087.jsonl.eval.json) | multilingual-e5-large | section ≤700 | sí | k≤3, s≥0.87 | 0.975 | 1.000 | 0.967 | 1.000 | 1.10 | 387 |
 | [C-e5large-section700meta-k3s089](C-e5large-section700meta-k3s089.jsonl.eval.json) | multilingual-e5-large | section ≤700 | sí | k≤3, s≥0.89 | 1.000 | 1.000 | 1.000 | 1.000 | 1.00 | 349 |
 | [C-e5large-section700meta-k5](C-e5large-section700meta-k5.jsonl.eval.json) | multilingual-e5-large | section ≤700 | sí | k=5 | 0.333 | 1.000 | 0.200 | 1.000 | 5.00 | 1437 |
+| [D-e5large-section700meta-rrk1](D-e5large-section700meta-rrk1.jsonl.eval.json) | multilingual-e5-large + bge-reranker-v2-m3 (top 10) | section ≤700 | sí | k=1 | 1.000 | 1.000 | 1.000 | 1.000 | 1.00 | 349 |
+| [D-e5large-section700meta-rrk2](D-e5large-section700meta-rrk2.jsonl.eval.json) | multilingual-e5-large + bge-reranker-v2-m3 (top 10) | section ≤700 | sí | k=2 | 0.667 | 1.000 | 0.500 | 1.000 | 2.00 | 615 |
+| [D5-e5large-section700meta-rrk1](D5-e5large-section700meta-rrk1.jsonl.eval.json) | multilingual-e5-large + bge-reranker-v2-m3 (top 5) | section ≤700 | sí | k=1 | 1.000 | 1.000 | 1.000 | 1.000 | 1.00 | 349 |

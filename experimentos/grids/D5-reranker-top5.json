@@ -1,0 +1,28 @@
+{
+  "stage": "D5",
+  "questions": "datos/preguntas_recuperacion_dev.jsonl",
+  "reranker": {
+    "model": "BAAI/bge-reranker-v2-m3",
+    "candidates": 5
+  },
+  "encoders": {
+    "e5large": {
+      "type": "sentence_transformer",
+      "model": "intfloat/multilingual-e5-large",
+      "query_prefix": "query: ",
+      "passage_prefix": "passage: "
+    }
+  },
+  "chunkings": {
+    "section700meta": {
+      "strategy": "section",
+      "max_chars": 700,
+      "metadata": true
+    }
+  },
+  "selections": {
+    "rrk1": {
+      "top_k": 1
+    }
+  }
+}
