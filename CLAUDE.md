@@ -33,10 +33,10 @@ Install the CPU torch wheel first: the default Linux wheel pulls several GB of C
 
 ## Layout
 
-- `rag/`: retrieval library (config, corpus, chunking, encoders, index, selection, retriever).
+- `rag/`: retrieval library (config, corpus, text, chunking, encoders, selection, reranking, retriever, analysis).
 - `recuperar.py`: thin CLI adapter over `rag.Retriever`; reads `config/retriever.json`.
 - `scripts/`: experiment runner and score analysis.
-- `experimentos/`: one `<run>.jsonl`, `<run>.config.json` and `<run>.jsonl.eval.json` per configuration, plus the generated `RESULTS.md`.
+- `experimentos/`: one `<run>.jsonl`, `<run>.config.json` and `<run>.jsonl.eval.json` per configuration, plus the generated `RESULTS.md`; `experimentos/extra/` holds the same runs on the extra validation set (`eval_extra/`).
 
 ## Workflow
 

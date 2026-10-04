@@ -29,7 +29,8 @@ python3 recuperar.py --preguntas <questions.jsonl> --salida <results.jsonl> [--c
    A single unit longer than `max_chars` becomes a chunk of its own.
 4. **Metadata.** With `metadata: true` a chunk is rendered as `"<title> — <section>\n<text>"`, or `"<title>\n<text>"` when it has no section. The rendered text is both what gets embedded and the returned fragment.
 5. **Scoring.** Passages and queries are embedded with the configured encoder (L2-normalized, with the encoder's prefixes) and scored by cosine similarity.
-6. **Cut-off.** All chunks are ranked by descending score, ties in corpus order, then:
+6. **Reranking (optional).** With a `reranker`, a cross-encoder re-scores the bi-encoder's best `candidates` chunks, reading query and passage together; the ranking keeps only those candidates, in the cross-encoder's order.
+7. **Cut-off.** All chunks are ranked by descending score, ties in corpus order, then:
    - keep at most `top_k`;
    - drop candidates below `min_score`, if set;
    - drop candidates more than `max_margin` below the best, if set;
@@ -50,9 +51,12 @@ python3 recuperar.py --preguntas <questions.jsonl> --salida <results.jsonl> [--c
     "batch_size": 16
   },
   "chunking": {"strategy": "section", "max_chars": 700, "overlap_sentences": 0, "metadata": true},
-  "selection": {"top_k": 1, "min_score": null, "max_margin": null}
+  "selection": {"top_k": 1, "min_score": null, "max_margin": null},
+  "reranker": null
 }
 ```
+
+`reranker`, when set: `{"model": "BAAI/bge-reranker-v2-m3", "candidates": 10, "revision": null, "batch_size": 16}`.
 
 Unknown keys are rejected, so a typo in a grid cannot pass silently.
 
@@ -76,7 +80,9 @@ A grid file in `experimentos/grids/` crosses named encoders, chunkings and selec
 }
 ```
 
-Each combination is a run named `<stage>-<encoder>-<chunking>-<selection>` that writes `experimentos/<run>.jsonl` and `experimentos/<run>.config.json`, then runs the official evaluator, which writes `experimentos/<run>.jsonl.eval.json`. `experimentos/RESULTS.md` is regenerated from every run on disk.
+An optional top-level `"reranker"` applies to every run of the grid. Each combination is a run named `<stage>-<encoder>-<chunking>-<selection>` that writes `experimentos/<run>.jsonl` and `experimentos/<run>.config.json`, then runs the official evaluator, which writes `experimentos/<run>.jsonl.eval.json`. `experimentos/RESULTS.md` is regenerated from every run on disk. `<run>.config.json` is a complete configuration: `recuperar.py --config` reproduces the run.
+
+`--questions eval_extra/preguntas_recuperacion_extra.jsonl --out-dir experimentos/extra` runs the same grid on the extra validation set, used only to confirm finalists.
 
 ## Tested seams
 
@@ -85,9 +91,9 @@ Agreed with the team: tests only at the seams that decide the grade or that Part
 | Seam | Covers |
 |---|---|
 | `recuperar.main` | Output format, ids and order, no use of `evidencia`, the official evaluator accepts the output |
-| `Retriever` | Descending ranking, search = ranking + cut-off, embedding cache keyed by content |
+| `Retriever` | Descending ranking, search = ranking + cut-off, metadata headers, embedding cache keyed by content, reranker order |
 | `chunk_corpus` | Each strategy's output and the invariants of §3 |
-| `select` | The cut-off rules of §6 |
+| `select` | The cut-off rules of §7 |
 
 ## Acceptance
 
