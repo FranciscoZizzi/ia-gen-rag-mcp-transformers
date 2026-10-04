@@ -32,9 +32,9 @@ from rag.selection import select  # noqa: E402
 EVALUATOR = REPO_ROOT / "evaluar" / "evaluar.py"
 
 
-def run_grid(grid_path: Path, out_dir: Path, cache_dir: Path) -> None:
+def run_grid(grid_path: Path, out_dir: Path, cache_dir: Path, questions_override: str | None = None) -> None:
     grid = json.loads(grid_path.read_text(encoding="utf-8"))
-    questions_path = REPO_ROOT / grid["questions"]
+    questions_path = REPO_ROOT / (questions_override or grid["questions"])
     corpus_dir = grid.get("corpus_dir", "datos/corpus")
     questions = read_jsonl(questions_path)
     documents = load_corpus(REPO_ROOT / corpus_dir)
@@ -62,7 +62,7 @@ def run_grid(grid_path: Path, out_dir: Path, cache_dir: Path) -> None:
                 summary = evaluate(questions_path, results_path)
                 print(f"{run:55s} CR {summary['context_relevance']:.3f}  recall {summary['recall']:.3f}  "
                       f"precision {summary['precision']:.3f}  k {summary['k']:.2f}", flush=True)
-    write_results_table(out_dir)
+    write_results_table(out_dir, questions_path.relative_to(REPO_ROOT))
 
 
 def evaluate(questions_path: Path, results_path: Path) -> dict:
@@ -72,7 +72,7 @@ def evaluate(questions_path: Path, results_path: Path) -> dict:
     return json.loads(Path(f"{results_path}.eval.json").read_text(encoding="utf-8"))["resumen"]
 
 
-def write_results_table(out_dir: Path) -> None:
+def write_results_table(out_dir: Path, questions: Path) -> None:
     """Regenerate RESULTS.md from every run on disk, so no number is ever copied by hand."""
     header = ("| Run | Encoder | Chunking | Metadatos | Corte | CR | Recall | Precision | MRR | k medio | Caracteres |\n"
               "|---|---|---|---|---|---|---|---|---|---|---|\n")
@@ -89,8 +89,8 @@ def write_results_table(out_dir: Path) -> None:
                     f"{describe_selection(config.selection)} | {s['context_relevance']:.3f} | {s['recall']:.3f} | "
                     f"{s['precision']:.3f} | {s['mrr']:.3f} | {s['k']:.2f} | {s['caracteres']:.0f} |\n")
     (out_dir / "RESULTS.md").write_text(
-        "# Resultados de la Parte 1\n\nGenerado por `scripts/run_experiments.py` a partir de los `.eval.json` "
-        "del evaluador oficial. No editar a mano.\n\n" + header + "".join(rows), encoding="utf-8")
+        f"# Resultados de la Parte 1\n\nPreguntas: `{questions}`. Generado por `scripts/run_experiments.py` a partir "
+        "de los `.eval.json` del evaluador oficial. No editar a mano.\n\n" + header + "".join(rows), encoding="utf-8")
 
 
 def describe_encoder(encoder: EncoderConfig) -> str:
@@ -123,8 +123,9 @@ def main() -> None:
     parser.add_argument("grid", type=Path, help="grid JSON (see SPEC.md)")
     parser.add_argument("--out-dir", type=Path, default=REPO_ROOT / "experimentos")
     parser.add_argument("--cache-dir", type=Path, default=REPO_ROOT / ".cache" / "embeddings")
+    parser.add_argument("--questions", help="questions file relative to the repo root; overrides the grid's")
     args = parser.parse_args()
-    run_grid(args.grid, args.out_dir, args.cache_dir)
+    run_grid(args.grid, args.out_dir, args.cache_dir, args.questions)
 
 
 if __name__ == "__main__":

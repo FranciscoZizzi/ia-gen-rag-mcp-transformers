@@ -37,9 +37,9 @@ def diagnose(grid_path: Path) -> str:
     questions = read_jsonl(REPO_ROOT / grid["questions"])
     corpus_dir = grid.get("corpus_dir", "datos/corpus")
     documents = load_corpus(REPO_ROOT / corpus_dir)
-    lines = ["| Encoder | Chunking | hit@1 | hit@3 | hit@5 | MRR | Evidencia − mejor otro | Margen 1º − 2º "
+    lines = ["| Encoder | Chunking | Chunks | hit@1 | hit@3 | hit@5 | MRR | Evidencia − mejor otro | Margen 1º − 2º "
              "| Coseno medio ± desvío | Chunks truncados | Pasajes (s) | Consulta (ms) |",
-             "|---|---|---|---|---|---|---|---|---|---|---|---|"]
+             "|---|---|---|---|---|---|---|---|---|---|---|---|---|"]
     for encoder_name, encoder_spec in grid["encoders"].items():
         encoder_config = EncoderConfig(**encoder_spec)
         encoder = build_encoder(encoder_config)
@@ -68,7 +68,7 @@ def diagnose(grid_path: Path) -> str:
                 counts = encoder.passage_token_counts([chunk.render(chunking.metadata) for chunk in chunks])
                 truncated = f"{100 * sum(count > encoder.max_seq_length for count in counts) / len(counts):.0f} %"
             lines.append(
-                f"| {encoder_name} | {chunking_name} | {hit_rate(ranks, 1):.2f} | {hit_rate(ranks, 3):.2f} | "
+                f"| {encoder_name} | {chunking_name} | {len(chunks)} | {hit_rate(ranks, 1):.2f} | {hit_rate(ranks, 3):.2f} | "
                 f"{hit_rate(ranks, 5):.2f} | {mean_reciprocal_rank(ranks):.3f} | {statistics.mean(separations):+.3f} | "
                 f"{statistics.mean(margins):.3f} | {statistics.mean(all_scores):.3f} ± {statistics.pstdev(all_scores):.3f} | "
                 f"{truncated} | {passages_seconds:.1f} | {query_ms:.0f} |")
