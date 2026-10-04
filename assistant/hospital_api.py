@@ -8,7 +8,8 @@ import urllib.parse
 import urllib.request
 from typing import Any
 
-DEFAULT_URL = "http://localhost:8765"
+# The API server binds IPv4 only; "localhost" would try ::1 first and stall ~2 s per call on Windows.
+DEFAULT_URL = "http://127.0.0.1:8765"
 
 
 class HospitalApi:

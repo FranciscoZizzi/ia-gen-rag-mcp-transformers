@@ -26,7 +26,7 @@ def api_url():
     port = _free_port()
     server = subprocess.Popen([sys.executable, str(REPO_ROOT / "api" / "servidor.py"), "--puerto", str(port)],
                               stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-    url = f"http://localhost:{port}"
+    url = f"http://127.0.0.1:{port}"
     deadline = time.monotonic() + 10
     while True:
         try:
