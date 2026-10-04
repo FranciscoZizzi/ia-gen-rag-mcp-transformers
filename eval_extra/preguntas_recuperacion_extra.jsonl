@@ -1,0 +1,34 @@
+{"id": "X01", "pregunta": "Me opero a la tarde, ¿a qué hora tengo que estar en el hospital para internarme?", "evidencia": ["a las 13:00 si es por la tarde"]}
+{"id": "X02", "pregunta": "¿Se puede quedar alguien conmigo a la noche cuando esté internado?", "evidencia": ["Se permite un acompañante por paciente internado durante la noche"]}
+{"id": "X03", "pregunta": "¿Llevo los remedios que tomo siempre cuando me internan?", "evidencia": ["la medicación habitual en su envase original"]}
+{"id": "X04", "pregunta": "¿Necesito que un médico me derive para ir al psicólogo?", "evidencia": ["no se necesita derivación"]}
+{"id": "X05", "pregunta": "Un domingo de madrugada, ¿hay alguien de salud mental en el hospital?", "evidencia": ["funciona las 24 horas dentro de la guardia general"]}
+{"id": "X06", "pregunta": "¿Cuándo me mandan el link para la consulta por videollamada?", "evidencia": ["El enlace llega por WhatsApp 30 minutos antes"]}
+{"id": "X07", "pregunta": "Si me conecto tarde a la teleconsulta, ¿me esperan?", "evidencia": ["en los primeros 10 minutos, el turno se da por perdido"]}
+{"id": "X08", "pregunta": "¿Cuánto sale dejar el auto en el hospital?", "evidencia": ["es gratuito y tiene 80 lugares"]}
+{"id": "X09", "pregunta": "¿Qué colectivos me dejan en la puerta del hospital?", "evidencia": ["las líneas de colectivo 214 y 437"]}
+{"id": "X10", "pregunta": "¿Hasta cuándo me sirve una receta para retirar en la farmacia?", "evidencia": ["validez de 30 días desde la fecha de emisión"]}
+{"id": "X11", "pregunta": "¿Puede ir mi hijo a buscar mis remedios a la farmacia del hospital?", "evidencia": ["lleva su propio DNI y el del paciente"]}
+{"id": "X12", "pregunta": "Tengo la obra social de los viales, ¿qué papeles tengo que llevar?", "evidencia": ["con la credencial y el último recibo de sueldo"]}
+{"id": "X13", "pregunta": "No tengo obra social y me recetaron un medicamento carísimo, ¿qué hago?", "evidencia": ["se inicia un trámite con el servicio social del hospital"]}
+{"id": "X14", "pregunta": "¿Cuándo puedo ver por internet cómo me salió el análisis de sangre?", "evidencia": ["están a las 48 horas en la web del hospital"]}
+{"id": "X15", "pregunta": "¿Hasta qué hora sacan sangre a la mañana?", "evidencia": ["de lunes a viernes de 7:00 a 10:00, sin turno"]}
+{"id": "X16", "pregunta": "Me van a hacer una colonoscopía, ¿puedo ir solo?", "evidencia": ["tiene que venir acompañado"]}
+{"id": "X17", "pregunta": "Tomo metformina y me hacen una tomografía con contraste, ¿tengo que hacer algo con la pastilla?", "evidencia": ["la suspenden durante las 48 horas posteriores al estudio"]}
+{"id": "X18", "pregunta": "Tengo marcapasos, ¿me puedo hacer una resonancia?", "evidencia": ["avisan al sacar el turno, porque el estudio puede estar contraindicado"]}
+{"id": "X19", "pregunta": "¿Cuántos días antes de operarme dejo la aspirina?", "evidencia": ["la aspirina se deja 7 días antes"]}
+{"id": "X20", "pregunta": "¿Me tengo que sacar el esmalte de las uñas para la operación?", "evidencia": ["Retirar el esmalte de uñas"]}
+{"id": "X21", "pregunta": "Mi sobrino está internado en pediatría, ¿a qué hora lo puedo ir a ver?", "evidencia": ["la visita es de 17:00 a 19:00"]}
+{"id": "X22", "pregunta": "¿Pueden entrar chicos a visitar a un paciente de clínica médica?", "evidencia": ["Los menores de 12 años pueden ingresar acompañados por un adulto responsable"]}
+{"id": "X23", "pregunta": "Después de una cesárea, ¿cuántos días me quedo internada?", "evidencia": ["después de una cesárea, a las 72 horas"]}
+{"id": "X24", "pregunta": "¿Qué pasa si falto a kinesio sin avisar?", "evidencia": ["Dos ausencias sin aviso dan de baja el tratamiento"]}
+{"id": "X25", "pregunta": "¿Tengo que ir sin comer para donar sangre?", "evidencia": ["No hay que venir en ayunas"]}
+{"id": "X26", "pregunta": "Perdí el carnet de vacunas, ¿qué hago?", "evidencia": ["puede consultar el registro nominal con el DNI"]}
+{"id": "X27", "pregunta": "Estoy esperando en la guardia y me siento cada vez peor, ¿qué hago?", "evidencia": ["avisan en el mostrador de triage"]}
+{"id": "X28", "pregunta": "¿Cuánto tiempo me tengo que frotar las manos con alcohol en gel?", "evidencia": ["durante 20 a 30 segundos"]}
+{"id": "X29", "pregunta": "¿Puedo consultar a un médico de afuera sin perder mi atención acá?", "evidencia": ["sin perder su lugar en la atención"]}
+{"id": "X30", "pregunta": "¿Con cuánta anticipación tengo que llegar a un turno?", "evidencia": ["llegar 15 minutos antes"]}
+{"id": "X31", "pregunta": "¿Quién me consigue la ambulancia para volver a casa cuando me dan el alta?", "evidencia": ["el servicio social lo gestiona el día anterior al alta"]}
+{"id": "X32", "pregunta": "¿Cuándo es el primer control del bebé después de nacer?", "evidencia": ["a los 7 días de vida"]}
+{"id": "X33", "pregunta": "Si me hacen cesárea, ¿cuándo me voy y a qué hora dan el alta?", "evidencia": ["después de una cesárea, a las 72 horas", "Las altas se dan de 10:00 a 12:00"]}
+{"id": "X34", "pregunta": "Me hacen una colonoscopía y una tomografía con contraste, ¿cuánto ayuno necesito para cada una?", "evidencia": ["el ayuno total es de 6 horas antes del turno", "Se requiere ayuno de 4 horas"]}

@@ -1,0 +1,20 @@
+{
+  "corpus_dir": "datos/corpus",
+  "encoder": {
+    "type": "sentence_transformer",
+    "model": "intfloat/multilingual-e5-large",
+    "revision": "3d7cfbdacd47fdda877c5cd8a79fbcc4f2a574f3",
+    "query_prefix": "query: ",
+    "passage_prefix": "passage: ",
+    "max_seq_length": null,
+    "batch_size": 16
+  },
+  "chunking": {"strategy": "section", "max_chars": 700, "overlap_sentences": 0, "metadata": true},
+  "selection": {"top_k": 1, "min_score": null, "max_margin": null},
+  "reranker": {
+    "model": "BAAI/bge-reranker-v2-m3",
+    "candidates": 5,
+    "revision": "953dc6f6f85a1b2dbfca4c34a2796e7dde08d41e",
+    "batch_size": 16
+  }
+}

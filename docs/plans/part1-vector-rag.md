@@ -182,25 +182,27 @@ Forma de `config/retriever.json` (valores ilustrativos, los fijan los experiment
 
 ## 5. Pasos de implementación (TDD)
 
-Rama `feat/part1-retriever`. Cada paso es un ciclo test en rojo → implementación → refactor, y un commit.
+Rama `feat/part1-retriever`. Los tests se escriben en rodajas verticales: un test en rojo, el código mínimo para ponerlo en verde, y el siguiente.
 
-| Paso | Qué | Tests que lo guían |
+**Decisión del 2026-10-04:** hay tests sólo en los cuatro seams críticos: el contrato de `recuperar.py`, `Retriever`, `chunk_corpus` y `select`. Lo demás (texto, corpus, encoders, config, runner y análisis) se ejercita a través de esos seams o se verifica con corridas reales del evaluador.
+
+| Paso | Qué | Cómo se verifica |
 |---|---|---|
-| 0 | Setup: venv, torch para CPU, `requirements-dev.txt`, configuración de pytest con `testpaths = ["tests"]` y marcador `slow`, `CLAUDE.md`, `SPEC.md` (sección Parte 1) | — |
-| 1 | `rag/text.py`: `normalize_for_match()` y `split_sentences()` para castellano | Igual a `norm` del evaluador; no corta "2.500 pesos", "12:00" ni "38 °C"; cada ítem de lista es una oración |
-| 2 | `rag/corpus.py`: `Document` y `Section` desde el Markdown | 20 documentos; títulos; secciones; documentos sin `##`; no se pierde texto |
-| 3 | `rag/chunking.py`: estrategias `fixed`, `paragraph`, `section` y `sentence` | En todas: ningún chunk vacío; **toda oración del corpus queda entera en algún chunk**; toda evidencia dev está en algún chunk; se respetan `max_chars` y `overlap_sentences`; ningún chunk cruza documentos |
-| 4 | `rag/selection.py`: `select()` como función pura | top-k; `min_score`; `max_margin`; siempre ≥ 1; orden estable; empates |
-| 5 | `rag/encoders.py`: los tres encoders y `build_encoder()` | `mean_pool` ignora el padding; los prefijos se aplican (con un modelo stub); la salida está L2-normalizada; avisa si un chunk supera `max_seq_length`. Un test `slow` carga un modelo real |
-| 6 | `rag/index.py` y `rag/retriever.py` | Con `HashingBowEncoder`: orden descendente; `search_many` da lo mismo que `search` uno por uno; la caché cambia si cambia el corpus |
-| 7 | `recuperar.py` y `config/retriever.json` | Una línea por pregunta, mismos ids y orden, UTF-8; funciona sin la clave `evidencia` (prueba de que no hay fuga); **test de contrato**: `evaluar/evaluar.py recuperacion` acepta la salida |
+| 0 | Setup: venv, torch para CPU, `requirements-dev.txt`, configuración de pytest con `testpaths = ["tests"]`, `CLAUDE.md`, `SPEC.md` (sección Parte 1) | — |
+| 1 | `rag/text.py`: `normalize_for_match()` y `split_sentences()` para castellano | A través de los tests de chunking: oraciones con "2.500 pesos", ítems de lista y las evidencias dev tienen que quedar enteras |
+| 2 | `rag/corpus.py`: `Document` y `Section` desde el Markdown | A través de los tests de chunking (documentos sintéticos y el corpus real) |
+| 3 | `rag/chunking.py`: estrategias `fixed`, `paragraph`, `section` y `sentence` | **Seam `chunk_corpus`**: salida literal de cada estrategia sobre documentos sintéticos; en el corpus real, ningún chunk vacío, toda evidencia dev dentro de algún chunk, ningún chunk cruza documentos |
+| 4 | `rag/selection.py`: `select()` como función pura | **Seam `select`**: top-k; `min_score`; `max_margin`; siempre ≥ 1 |
+| 5 | `rag/encoders.py`: los tres encoders y `build_encoder()` | Corridas reales del evaluador en la etapa A |
+| 6 | `rag/index.py` y `rag/retriever.py` | **Seam `Retriever`**, con `hashing_bow`: orden descendente; `search` = ranking + corte; la caché no recalcula si nada cambió y no queda vieja si cambia el corpus |
+| 7 | `recuperar.py` y `config/retriever.json` | **Seam del contrato**: una línea por pregunta, mismos ids y orden; funciona sin la clave `evidencia`; `evaluar/evaluar.py recuperacion` acepta la salida |
 | 8 | Primera corrida real: la línea de base BERT | Primer `.eval.json` en `experimentos/` |
-| 9 | `scripts/run_experiments.py`: corre una grilla, llama a `evaluar.py`, guarda `<run>.config.json` y regenera `experimentos/RESULTS.md` | Dos configuraciones con el encoder léxico |
-| 10 | `scripts/analyze_scores.py` | Las cuentas (hit@k, bootstrap) con datos sintéticos |
+| 9 | `scripts/run_experiments.py`: corre una grilla, llama a `evaluar.py`, guarda `<run>.config.json` y regenera `experimentos/RESULTS.md` | Corrida real de la etapa A |
+| 10 | `scripts/analyze_scores.py` | Contraste con los números del evaluador oficial |
 
 `testpaths = ["tests"]` no es opcional: `atencion/test_atencion.py` lee `sys.argv[1]` y modifica `sys.argv` al importarse, así que si pytest lo recolecta, la recolección falla.
 
-Los tests unitarios corren en menos de 10 segundos y sin red. Los que cargan modelos reales se corren aparte con `pytest -m slow`.
+Los tests corren en pocos segundos y sin red.
 
 ## 6. Diseño experimental
 

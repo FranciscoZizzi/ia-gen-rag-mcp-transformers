@@ -1,0 +1,24 @@
+{
+ "encoder": {
+  "type": "mean_pooling",
+  "model": "google-bert/bert-base-multilingual-cased",
+  "revision": null,
+  "query_prefix": "",
+  "passage_prefix": "",
+  "max_seq_length": null,
+  "batch_size": 16
+ },
+ "chunking": {
+  "strategy": "fixed",
+  "max_chars": 200,
+  "overlap_sentences": 1,
+  "metadata": true
+ },
+ "selection": {
+  "top_k": 1,
+  "min_score": null,
+  "max_margin": null
+ },
+ "corpus_dir": "datos/corpus",
+ "reranker": null
+}

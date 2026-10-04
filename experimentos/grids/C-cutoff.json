@@ -1,0 +1,21 @@
+{
+  "stage": "C",
+  "questions": "datos/preguntas_recuperacion_dev.jsonl",
+  "encoders": {
+    "e5large": {"type": "sentence_transformer", "model": "intfloat/multilingual-e5-large", "query_prefix": "query: ", "passage_prefix": "passage: "}
+  },
+  "chunkings": {"section700meta": {"strategy": "section", "max_chars": 700, "metadata": true}},
+  "selections": {
+    "k2": {"top_k": 2},
+    "k5": {"top_k": 5},
+    "k2m005": {"top_k": 2, "max_margin": 0.005},
+    "k2m01": {"top_k": 2, "max_margin": 0.01},
+    "k2m02": {"top_k": 2, "max_margin": 0.02},
+    "k2m03": {"top_k": 2, "max_margin": 0.03},
+    "k3m01": {"top_k": 3, "max_margin": 0.01},
+    "k3m02": {"top_k": 3, "max_margin": 0.02},
+    "k3s085": {"top_k": 3, "min_score": 0.85},
+    "k3s087": {"top_k": 3, "min_score": 0.87},
+    "k3s089": {"top_k": 3, "min_score": 0.89}
+  }
+}
