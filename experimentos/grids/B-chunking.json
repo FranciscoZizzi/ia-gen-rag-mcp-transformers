@@ -1,0 +1,22 @@
+{
+  "stage": "B",
+  "questions": "datos/preguntas_recuperacion_dev.jsonl",
+  "encoders": {
+    "mbert": {"type": "mean_pooling", "model": "google-bert/bert-base-multilingual-cased"},
+    "e5large": {"type": "sentence_transformer", "model": "intfloat/multilingual-e5-large", "query_prefix": "query: ", "passage_prefix": "passage: "},
+    "bgem3": {"type": "sentence_transformer", "model": "BAAI/bge-m3"}
+  },
+  "chunkings": {
+    "section700": {"strategy": "section", "max_chars": 700, "metadata": false},
+    "section400meta": {"strategy": "section", "max_chars": 400, "metadata": true},
+    "paragraphmeta": {"strategy": "paragraph", "metadata": true},
+    "sentencemeta": {"strategy": "sentence", "metadata": true},
+    "fixed200meta": {"strategy": "fixed", "max_chars": 200, "overlap_sentences": 0, "metadata": true},
+    "fixed200o1meta": {"strategy": "fixed", "max_chars": 200, "overlap_sentences": 1, "metadata": true},
+    "fixed400meta": {"strategy": "fixed", "max_chars": 400, "overlap_sentences": 0, "metadata": true},
+    "fixed400o1meta": {"strategy": "fixed", "max_chars": 400, "overlap_sentences": 1, "metadata": true},
+    "fixed800meta": {"strategy": "fixed", "max_chars": 800, "overlap_sentences": 0, "metadata": true},
+    "fixed800o1meta": {"strategy": "fixed", "max_chars": 800, "overlap_sentences": 1, "metadata": true}
+  },
+  "selections": {"k1": {"top_k": 1}}
+}
