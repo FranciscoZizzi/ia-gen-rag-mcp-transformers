@@ -103,3 +103,54 @@ Agreed with the team: tests only at the seams that decide the grade or that Part
 - [x] The delivered configuration clearly beats the BERT baseline: +0.70 CR on dev (95% paired bootstrap interval +0.50 to +0.90).
 - [x] `INFORME.md` explains the choice with numbers.
 - [x] `pytest` passes offline.
+
+# SPEC — Part 2: tool-calling agent
+
+Plan and rationale: `docs/plans/part2-agent.md`. Results and failure analysis: `INFORME.md`, Parte 2.
+
+## Contract
+
+```bash
+python3 api/servidor.py &
+OPENROUTER_API_KEY=... python3 agente.py --preguntas <questions.jsonl> --salida <answers.jsonl> \
+    [--log <run.log.md>] [--modelo <openrouter id>] [--api-url <url>] [--config config/agent_retriever.json]
+```
+
+- **Input**: one JSON object per line with `id` and `pregunta`; any other key is ignored.
+- **Output**: one line per input question, in input order: `{"id", "respuesta", "contextos", "herramientas"}`. `contextos` is every tool result as text, failed API calls included; `herramientas` the tools called, each once, in order of first use. A question whose run fails three times still gets a row, with an empty answer.
+- **Log**: `<salida without .jsonl>.log.md` unless `--log` says otherwise: per question, every model call with its tokens and the cost OpenRouter reports, every tool call with arguments and result, and the answer.
+- **Defaults**: model `deepseek/deepseek-v4-flash-0731`, API `$HOSPITAL_API_URL` or `http://127.0.0.1:8765`.
+
+## Tools
+
+`assistant/tools.py` (`HospitalTools`), plain functions that return text and never raise:
+
+| Tool | Does |
+|---|---|
+| `buscar_documentos(consulta)` | The Part 1 retriever with `config/agent_retriever.json`: fragments separated by `---` lines |
+| `consultar_camas(sector)` | `GET /camas` |
+| `consultar_guardia(especialidad)` | `GET /guardia` |
+| `consultar_turnos(especialidad)` | `GET /turnos` |
+| `consultar_farmacia(medicamento)` | `GET /farmacia` |
+| `consultar_espera()` | `GET /espera` |
+
+The API tools return the route's JSON verbatim, error bodies (with the valid options) included. Their descriptions list the valid names, discovered at start-up by calling each route without its parameter; `buscar_documentos` lists the corpus document titles. The retriever loads lazily, on the first search.
+
+`config/agent_retriever.json` is `config/retriever.json` with an adaptive cut-off (`top_k` 3, `max_margin` 0.45): one fragment when the reranker is sure, up to three when the runners-up score close to the best.
+
+## Tested seams
+
+| Seam | Covers |
+|---|---|
+| `HospitalTools` | Tool names, each route's JSON as text, API-style name matching, errors with options instead of exceptions, descriptions with the API's options, retriever fragments, lazy retriever |
+| `agente.main` | Row format, ids and order, the six tools offered, `herramientas` and `contextos` from the calls actually made (failed ones included), the log's arguments, results and per-call usage, a failing question still gets a row |
+
+The API is the real `api/servidor.py` on a free port and the retriever the lexical `hashing_bow`; the only double is the model, a scripted `agents.Model`.
+
+## Acceptance
+
+- [x] The contract command runs against the API and writes `respuestas.jsonl` and `respuestas.log.md`.
+- [x] Routing 1.00 and the three judge metrics above 4 on dev (`respuestas.jsonl.eval.json`: 4.92 / 5.00 / 5.00).
+- [x] One `.log.md` per benchmark run, in `experimentos/agente/`.
+- [x] `INFORME.md` analyses the questions where the agent failed, from the logs.
+- [x] `pytest` passes offline.

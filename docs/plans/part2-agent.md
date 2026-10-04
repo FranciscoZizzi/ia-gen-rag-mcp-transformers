@@ -7,7 +7,7 @@
 
 - Agente con tool calling sobre `deepseek/deepseek-v4-flash-0731` vía OpenRouter, armado con el **SDK de agentes de OpenAI** (`openai-agents`), el framework que recomienda la consigna. La Parte 3 reutiliza el mismo framework con `MCPServerStdio`.
 - Las seis herramientas viven en `assistant/tools.py` como funciones Python puras que devuelven texto. `agente.py` las envuelve con `function_tool`; la Parte 3 puede envolver exactamente las mismas funciones con `@mcp.tool()`, así no hay código duplicado.
-- `buscar_documentos` es el recuperador de la Parte 1 tal cual quedó congelado en `config/retriever.json`.
+- `buscar_documentos` usa el encoder, el chunking y el reranker de la Parte 1, con un corte adaptativo (`config/agent_retriever.json`): un fragmento cuando el reranker está seguro y hasta tres cuando duda. Se agregó después de v1, por la falla de A10 (ver `INFORME.md`).
 - Las descripciones de las herramientas de la API listan los nombres válidos (sectores, especialidades, medicamentos). Esos nombres no se escriben a mano: se descubren al arrancar pidiéndole a la API cada ruta sin parámetro, que devuelve la lista de opciones. Si la API cambia, las descripciones cambian solas.
 - Cada corrida deja `respuestas.jsonl`, su `.eval.json` del evaluador oficial y un log `.md` con cada llamada al modelo (tokens y costo que informa OpenRouter), cada llamada a herramienta con sus argumentos y su resultado, y la respuesta.
 
