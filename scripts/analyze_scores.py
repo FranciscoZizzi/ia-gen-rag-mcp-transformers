@@ -32,14 +32,14 @@ from rag.io import read_jsonl  # noqa: E402
 from rag.retriever import Retriever  # noqa: E402
 
 
-def diagnose(grid_path: Path) -> str:
+def diagnose(grid_path: Path, questions_override: str | None = None) -> str:
     grid = json.loads(grid_path.read_text(encoding="utf-8"))
-    questions = read_jsonl(REPO_ROOT / grid["questions"])
+    questions = read_jsonl(REPO_ROOT / (questions_override or grid["questions"]))
     corpus_dir = grid.get("corpus_dir", "datos/corpus")
     documents = load_corpus(REPO_ROOT / corpus_dir)
-    lines = ["| Encoder | Chunking | Chunks | hit@1 | hit@3 | hit@5 | MRR | Evidencia − mejor otro | Margen 1º − 2º "
-             "| Coseno medio ± desvío | Chunks truncados | Pasajes (s) | Consulta (ms) |",
-             "|---|---|---|---|---|---|---|---|---|---|---|---|---|"]
+    lines = ["| Encoder | Chunking | Chunks | hit@1 | hit@3 | hit@5 | MRR | Evidencia − mejor otro | En desvíos "
+             "| Margen 1º − 2º | Coseno medio ± desvío | Chunks truncados | Pasajes (s) | Consulta (ms) |",
+             "|---|---|---|---|---|---|---|---|---|---|---|---|---|---|"]
     for encoder_name, encoder_spec in grid["encoders"].items():
         encoder_config = EncoderConfig(**encoder_spec)
         encoder = build_encoder(encoder_config)
@@ -55,12 +55,14 @@ def diagnose(grid_path: Path) -> str:
             query_ms = 1000 * (time.perf_counter() - started) / len(questions)
 
             ranks = [gold_rank(ranking, question["evidencia"]) for ranking, question in zip(rankings, questions)]
-            separations, margins, all_scores = [], [], []
+            separations, standardized, margins, all_scores = [], [], [], []
             for ranking, question in zip(rankings, questions):
                 gold = {id(scored) for scored in ranking if gold_rank([scored], question["evidencia"])}
                 gold_best = max(scored.score for scored in ranking if id(scored) in gold)
                 other_best = max(scored.score for scored in ranking if id(scored) not in gold)
                 separations.append(gold_best - other_best)
+                # The same gap in units of this query's score spread: comparable across encoders.
+                standardized.append((gold_best - other_best) / statistics.pstdev(scored.score for scored in ranking))
                 margins.append(ranking[0].score - ranking[1].score)
                 all_scores.extend(scored.score for scored in ranking)
             truncated = "—"
@@ -70,6 +72,7 @@ def diagnose(grid_path: Path) -> str:
             lines.append(
                 f"| {encoder_name} | {chunking_name} | {len(chunks)} | {hit_rate(ranks, 1):.2f} | {hit_rate(ranks, 3):.2f} | "
                 f"{hit_rate(ranks, 5):.2f} | {mean_reciprocal_rank(ranks):.3f} | {statistics.mean(separations):+.3f} | "
+                f"{statistics.mean(standardized):+.2f} | "
                 f"{statistics.mean(margins):.3f} | {statistics.mean(all_scores):.3f} ± {statistics.pstdev(all_scores):.3f} | "
                 f"{truncated} | {passages_seconds:.1f} | {query_ms:.0f} |")
             print(lines[-1], flush=True)
@@ -104,6 +107,7 @@ def main() -> None:
     diagnose_parser = commands.add_parser("diagnose")
     diagnose_parser.add_argument("grid", type=Path)
     diagnose_parser.add_argument("--out", type=Path)
+    diagnose_parser.add_argument("--questions", help="questions file relative to the repo root; overrides the grid's")
     compare_parser = commands.add_parser("compare")
     compare_parser.add_argument("run_a")
     compare_parser.add_argument("run_b")
@@ -111,7 +115,10 @@ def main() -> None:
     compare_parser.add_argument("--out", type=Path)
     args = parser.parse_args()
 
-    report = diagnose(args.grid) if args.command == "diagnose" else compare(args.run_a, args.run_b, args.out_dir)
+    if args.command == "diagnose":
+        report = diagnose(args.grid, args.questions)
+    else:
+        report = compare(args.run_a, args.run_b, args.out_dir)
     if args.out:
         args.out.parent.mkdir(parents=True, exist_ok=True)
         args.out.write_text(report, encoding="utf-8")

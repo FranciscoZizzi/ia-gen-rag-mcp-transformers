@@ -51,3 +51,14 @@ Preguntas: `datos/preguntas_recuperacion_dev.jsonl`. Generado por `scripts/run_e
 | [B-mbert-section400meta-k1](B-mbert-section400meta-k1.jsonl.eval.json) | bert-base-multilingual-cased (promedio de tokens) | section ≤400 | sí | k=1 | 0.250 | 0.250 | 0.250 | 0.250 | 1.00 | 274 |
 | [B-mbert-section700-k1](B-mbert-section700-k1.jsonl.eval.json) | bert-base-multilingual-cased (promedio de tokens) | section ≤700 | no | k=1 | 0.250 | 0.250 | 0.250 | 0.250 | 1.00 | 235 |
 | [B-mbert-sentencemeta-k1](B-mbert-sentencemeta-k1.jsonl.eval.json) | bert-base-multilingual-cased (promedio de tokens) | sentence | sí | k=1 | 0.250 | 0.250 | 0.250 | 0.250 | 1.00 | 164 |
+| [C-e5large-section700meta-k2](C-e5large-section700meta-k2.jsonl.eval.json) | multilingual-e5-large | section ≤700 | sí | k=2 | 0.667 | 1.000 | 0.500 | 1.000 | 2.00 | 624 |
+| [C-e5large-section700meta-k2m005](C-e5large-section700meta-k2m005.jsonl.eval.json) | multilingual-e5-large | section ≤700 | sí | k≤2, Δ≤0.005 | 1.000 | 1.000 | 1.000 | 1.000 | 1.00 | 349 |
+| [C-e5large-section700meta-k2m01](C-e5large-section700meta-k2m01.jsonl.eval.json) | multilingual-e5-large | section ≤700 | sí | k≤2, Δ≤0.01 | 1.000 | 1.000 | 1.000 | 1.000 | 1.00 | 349 |
+| [C-e5large-section700meta-k2m02](C-e5large-section700meta-k2m02.jsonl.eval.json) | multilingual-e5-large | section ≤700 | sí | k≤2, Δ≤0.02 | 0.933 | 1.000 | 0.900 | 1.000 | 1.20 | 401 |
+| [C-e5large-section700meta-k2m03](C-e5large-section700meta-k2m03.jsonl.eval.json) | multilingual-e5-large | section ≤700 | sí | k≤2, Δ≤0.03 | 0.867 | 1.000 | 0.800 | 1.000 | 1.40 | 459 |
+| [C-e5large-section700meta-k3m01](C-e5large-section700meta-k3m01.jsonl.eval.json) | multilingual-e5-large | section ≤700 | sí | k≤3, Δ≤0.01 | 1.000 | 1.000 | 1.000 | 1.000 | 1.00 | 349 |
+| [C-e5large-section700meta-k3m02](C-e5large-section700meta-k3m02.jsonl.eval.json) | multilingual-e5-large | section ≤700 | sí | k≤3, Δ≤0.02 | 0.917 | 1.000 | 0.883 | 1.000 | 1.30 | 428 |
+| [C-e5large-section700meta-k3s085](C-e5large-section700meta-k3s085.jsonl.eval.json) | multilingual-e5-large | section ≤700 | sí | k≤3, s≥0.85 | 0.825 | 1.000 | 0.758 | 1.000 | 1.65 | 519 |
+| [C-e5large-section700meta-k3s087](C-e5large-section700meta-k3s087.jsonl.eval.json) | multilingual-e5-large | section ≤700 | sí | k≤3, s≥0.87 | 0.975 | 1.000 | 0.967 | 1.000 | 1.10 | 387 |
+| [C-e5large-section700meta-k3s089](C-e5large-section700meta-k3s089.jsonl.eval.json) | multilingual-e5-large | section ≤700 | sí | k≤3, s≥0.89 | 1.000 | 1.000 | 1.000 | 1.000 | 1.00 | 349 |
+| [C-e5large-section700meta-k5](C-e5large-section700meta-k5.jsonl.eval.json) | multilingual-e5-large | section ≤700 | sí | k=5 | 0.333 | 1.000 | 0.200 | 1.000 | 5.00 | 1437 |
