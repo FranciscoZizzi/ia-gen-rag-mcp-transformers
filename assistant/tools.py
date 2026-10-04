@@ -15,7 +15,9 @@ from rag.corpus import load_corpus
 from rag.retriever import Retriever
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-DEFAULT_RETRIEVER_CONFIG = REPO_ROOT / "config" / "retriever.json"
+# The Part 1 retriever with an adaptive cut-off: one fragment when the reranker is sure, up to three when the
+# runners-up score close to the best (see INFORME.md, Parte 2). recuperar.py keeps config/retriever.json.
+DEFAULT_RETRIEVER_CONFIG = REPO_ROOT / "config" / "agent_retriever.json"
 
 TOOL_NAMES = ["buscar_documentos", "consultar_camas", "consultar_guardia", "consultar_turnos",
               "consultar_farmacia", "consultar_espera"]
@@ -115,5 +117,5 @@ class HospitalTools:
 
 
 def _frozen_retriever() -> Retriever:
-    """The delivered Part 1 configuration, exactly what recuperar.py runs."""
+    """The delivered Part 1 encoder, chunking and reranker, with the agent's cut-off."""
     return Retriever.from_config(load_config(DEFAULT_RETRIEVER_CONFIG), base_dir=REPO_ROOT)
