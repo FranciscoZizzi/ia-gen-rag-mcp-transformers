@@ -16,6 +16,8 @@ class EncoderConfig:
 @dataclass(frozen=True)
 class ChunkingConfig:
     strategy: str = "paragraph"
+    max_chars: int = 700
+    overlap_sentences: int = 0
 
 
 @dataclass(frozen=True)
