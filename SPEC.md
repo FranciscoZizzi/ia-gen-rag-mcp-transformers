@@ -97,9 +97,9 @@ Agreed with the team: tests only at the seams that decide the grade or that Part
 
 ## Acceptance
 
-- [ ] The contract command runs from a clean clone after `pip install -r requirements.txt`, with no extra flags.
-- [ ] The winning configuration is fixed in `config/retriever.json`, with the model revision pinned.
-- [ ] At least 3 encoders compared, the BERT baseline included; every row of the report table has its `.eval.json` in `experimentos/`.
-- [ ] The delivered configuration clearly beats the BERT baseline (difference and confidence interval).
-- [ ] `INFORME.md` explains the choice with numbers.
-- [ ] `pytest` passes offline.
+- [x] The contract command runs from a clean clone after `pip install -r requirements.txt`, with no extra flags (checked on 2026-10-04: CR 1.00 on dev, output byte-identical to the committed `resultados.jsonl`).
+- [x] The winning configuration is fixed in `config/retriever.json`, with both model revisions pinned.
+- [x] At least 3 encoders compared, the BERT baseline included; every row of the report table has its `.eval.json` in `experimentos/`.
+- [x] The delivered configuration clearly beats the BERT baseline: +0.70 CR on dev (95% paired bootstrap interval +0.50 to +0.90).
+- [x] `INFORME.md` explains the choice with numbers.
+- [x] `pytest` passes offline.
