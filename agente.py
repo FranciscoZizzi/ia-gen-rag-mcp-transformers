@@ -12,7 +12,8 @@ from pathlib import Path
 
 from agents import Model
 
-from assistant.agent import DEFAULT_MODEL, UsageRecorder, answer, build_agent, openrouter_model
+from assistant.agent import (DEFAULT_MODEL, UsageRecorder, answer, build_agent, openrouter_model,
+                             recording_http_client)
 from assistant.hospital_api import HospitalApi
 from assistant.report import write_log
 from assistant.tools import DEFAULT_RETRIEVER_CONFIG, REPO_ROOT, HospitalTools
@@ -27,7 +28,7 @@ def main(argv: list[str] | None = None, model: Model | None = None) -> None:
     parser.add_argument("--salida", type=Path, required=True, help="output JSONL with id, respuesta, contextos, herramientas")
     parser.add_argument("--log", type=Path, help="Markdown run log (default: <salida without .jsonl>.log.md)")
     parser.add_argument("--modelo", default=DEFAULT_MODEL, help="OpenRouter model id")
-    parser.add_argument("--api-url", help="hospital API base URL (default: $HOSPITAL_API_URL or http://localhost:8765)")
+    parser.add_argument("--api-url", help="hospital API base URL (default: $HOSPITAL_API_URL or http://127.0.0.1:8765)")
     parser.add_argument("--config", type=Path, default=DEFAULT_RETRIEVER_CONFIG, help="retriever configuration JSON")
     args = parser.parse_args(argv)
 
@@ -35,16 +36,17 @@ def main(argv: list[str] | None = None, model: Model | None = None) -> None:
     tools = HospitalTools(HospitalApi(args.api_url),
                           retriever_factory=lambda: Retriever.from_config(load_config(args.config), base_dir=REPO_ROOT))
     recorder = UsageRecorder()
-    agent = build_agent(tools, model or openrouter_model(args.modelo, recorder))
 
     async def run_all():
-        runs = []
-        for question in questions:
-            run = await answer(agent, question["id"], question["pregunta"], recorder)
-            print(f"{run.question_id}  {', '.join(run.tools) or '-'}  USD {run.cost:.6f}"
-                  + (f"  ERROR {run.error}" if run.error else ""), flush=True)
-            runs.append(run)
-        return runs
+        async with recording_http_client(recorder) as http_client:
+            agent = build_agent(tools, model or openrouter_model(args.modelo, http_client))
+            return [await run_one(agent, question) for question in questions]
+
+    async def run_one(agent, question):
+        run = await answer(agent, question["id"], question["pregunta"], recorder)
+        print(f"{run.question_id}  {', '.join(run.tools) or '-'}  USD {run.cost:.6f}"
+              + (f"  ERROR {run.error}" if run.error else ""), flush=True)
+        return run
 
     runs = asyncio.run(run_all())
     write_jsonl(args.salida, (run.to_row() for run in runs))

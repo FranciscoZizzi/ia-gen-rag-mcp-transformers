@@ -108,12 +108,16 @@ class UsageRecorder:
         return calls
 
 
-def openrouter_model(model: str, recorder: UsageRecorder) -> Model:
+def recording_http_client(recorder: UsageRecorder) -> httpx.AsyncClient:
+    """Close it inside the event loop (async with): closing it after asyncio.run fails on Windows."""
+    return httpx.AsyncClient(timeout=120, event_hooks={"response": [recorder]})
+
+
+def openrouter_model(model: str, http_client: httpx.AsyncClient) -> Model:
     api_key = os.environ.get("OPENROUTER_API_KEY")
     if not api_key:
         raise SystemExit("falta la variable OPENROUTER_API_KEY")
-    client = AsyncOpenAI(base_url=OPENROUTER_URL, api_key=api_key, max_retries=3,
-                         http_client=httpx.AsyncClient(timeout=120, event_hooks={"response": [recorder]}))
+    client = AsyncOpenAI(base_url=OPENROUTER_URL, api_key=api_key, max_retries=3, http_client=http_client)
     return OpenAIChatCompletionsModel(model=model, openai_client=client)
 
 
