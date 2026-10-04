@@ -62,7 +62,8 @@ def diagnose(grid_path: Path, questions_override: str | None = None) -> str:
                 other_best = max(scored.score for scored in ranking if id(scored) not in gold)
                 separations.append(gold_best - other_best)
                 # The same gap in units of this query's score spread: comparable across encoders.
-                standardized.append((gold_best - other_best) / statistics.pstdev(scored.score for scored in ranking))
+                spread = statistics.pstdev(scored.score for scored in ranking)
+                standardized.append((gold_best - other_best) / spread if spread else 0.0)  # flat ranking: no signal
                 margins.append(ranking[0].score - ranking[1].score)
                 all_scores.extend(scored.score for scored in ranking)
             truncated = "—"
