@@ -70,7 +70,7 @@ def test_never_reads_the_evidence(tmp_path, config_path):
         "".join(json.dumps({"id": q["id"], "pregunta": q["pregunta"]}, ensure_ascii=False) + "\n" for q in with_evidence),
         encoding="utf-8")
 
-    run_recuperar(DEV_QUESTIONS, tmp_path / "con.jsonl", config_path)
-    run_recuperar(without_evidence, tmp_path / "sin.jsonl", config_path)
+    run_recuperar(DEV_QUESTIONS, tmp_path / "with_evidence.jsonl", config_path)
+    run_recuperar(without_evidence, tmp_path / "without_evidence.jsonl", config_path)
 
-    assert read_jsonl(tmp_path / "sin.jsonl") == read_jsonl(tmp_path / "con.jsonl")
+    assert read_jsonl(tmp_path / "without_evidence.jsonl") == read_jsonl(tmp_path / "with_evidence.jsonl")

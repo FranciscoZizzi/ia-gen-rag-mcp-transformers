@@ -140,7 +140,66 @@ En CPU (8 núcleos), la corrida del contrato sobre las 20 preguntas dev tarda 11
 
 ## Parte 2: un agente con dos fuentes
 
-Pendiente.
+### Resumen
+
+`agente.py` es un agente con tool calling sobre **`deepseek/deepseek-v4-flash-0731`** (vía OpenRouter), armado con el **SDK de agentes de OpenAI** (`openai-agents`). Tiene las seis herramientas de la consigna: `buscar_documentos` llama al recuperador de la Parte 1 y las otras cinco a la API del hospital.
+
+| Corrida entregada (`respuestas.jsonl`, dev) | Ruteo | Context Relevance | Faithfulness | Answer Relevance | Costo del agente |
+|---|---|---|---|---|---|
+| `v2-margen` | **1,00** | **4,92** | **5,00** | **5,00** | USD 0,0036 |
+
+Las tres métricas quedan por encima de 4 y el ruteo es perfecto en las 12 preguntas. El log de la corrida está en `respuestas.log.md`, y su evaluación en `respuestas.jsonl.eval.json`. Para reproducirla:
+
+```bash
+python3 api/servidor.py &
+export OPENROUTER_API_KEY=...
+python3 agente.py --preguntas datos/preguntas_agente_dev.jsonl --salida respuestas.jsonl   # también escribe respuestas.log.md
+python3 evaluar/evaluar.py agente --preguntas datos/preguntas_agente_dev.jsonl --respuestas respuestas.jsonl
+```
+
+### Diseño
+
+- **Herramientas en un solo lugar.** Las seis herramientas viven en `assistant/tools.py` como funciones Python que devuelven texto. `agente.py` las expone con `function_tool`, y el servidor MCP de la Parte 3 puede envolver las mismas funciones con `@mcp.tool()`. Una herramienta nunca lanza una excepción: si el nombre no existe, devuelve el error de la API con la lista de opciones, y el modelo puede corregirse.
+- **Descripciones que el modelo puede usar.** La descripción de cada herramienta de la API incluye los nombres válidos (sectores, especialidades y medicamentos). Esos nombres no están escritos a mano: al arrancar, el agente le pide cada ruta a la API sin parámetro y la API responde con sus opciones. La descripción de `buscar_documentos` dice qué tipo de preguntas resuelve (normas, requisitos y trámites, no el estado del día) y lista los títulos de los 20 documentos, que se leen del corpus.
+- **Prompt.** Pide separar la consulta en partes y resolver cada una con su fuente (estado del día → API, norma o trámite → documentos), no responder nunca de memoria y contestar breve, con los datos concretos y sin agregar consejos. Esas dos reglas apuntan a Faithfulness y a Context Relevance.
+- **Una conversación por pregunta**, con `temperature = 0` y hasta 8 turnos. Si una corrida falla (por la red o por el límite de turnos), se repite completa hasta 3 veces. Si sigue fallando, la pregunta queda con respuesta vacía y el error en el log.
+- **`contextos` y `herramientas` salen de la traza real** del SDK: cada resultado de herramienta entra como texto, incluidos los errores de la API si los hubo.
+- **Log y costo.** El SDK informa los tokens de cada llamada al modelo, pero no el costo. Un hook en el cliente HTTP guarda el bloque `usage` que devuelve OpenRouter en cada respuesta, que trae el costo en USD. El log `.md` muestra, para cada pregunta, cada llamada al modelo con sus tokens (de entrada, en caché, de salida y de razonamiento) y su costo, cada herramienta con sus argumentos y su resultado, y la respuesta.
+
+### Corridas
+
+Todas las corridas están en `experimentos/agente/`, con su `respuestas.jsonl`, su `.eval.json` y su log. La tabla completa está en `experimentos/agente/RESULTS.md`, que genera `scripts/summarize_agent_runs.py`. Además de dev, armamos un set propio de 12 preguntas (`eval_extra/preguntas_agente_extra.jsonl`), con la misma forma, sobre documentos y entradas de la API que dev no usa. Tiene nombres coloquiales ("UTI", "psiquiatra", "paracetamol de 500") y combinaciones nuevas de las dos fuentes.
+
+| Corrida | Qué cambia | Set | Ruteo | CR | F | AR | Llamadas a herramientas | Errores de la API | Costo agente (USD) |
+|---|---|---|---|---|---|---|---|---|---|
+| `v0-minimo` | Ablación: descripciones de una línea y prompt de una línea | dev | 1,00 | 5,00 | 5,00 | 5,00 | 15 | 0 | 0,0041 |
+| `v0-minimo` | ídem | propio | 1,00 | 4,92 | 5,00 | 5,00 | 22 | 5 | 0,0053 |
+| `v1-base` | Descripciones con opciones y temas, prompt completo, recuperador de la Parte 1 (k = 1) | dev | 1,00 | 5,00 | 5,00 | 5,00 | 15 | 0 | 0,0038 |
+| `v1-base-rep2` | Repetición de v1 | dev | 1,00 | 5,00 | 5,00 | 5,00 | 15 | 0 | 0,0036 |
+| `v1-base` | ídem | propio | 1,00 | 5,00 | 5,00 | 5,00 | 17 | 0 | 0,0040 |
+| **`v2-margen`** | **v1 + corte adaptativo del recuperador (hasta 3 fragmentos, margen 0,45)** | **dev** | **1,00** | **4,92** | **5,00** | **5,00** | 15 | 0 | 0,0036 |
+| `v2-margen` | ídem | propio | 1,00 | 5,00 | 5,00 | 5,00 | 16 | 0 | 0,0039 |
+
+El ablación `v0-minimo` muestra que, en estas preguntas, el modelo rutea bien solo con los nombres de las herramientas. Lo que aportan las descripciones aparece en el set propio. Sin la lista de opciones, el modelo prueba nombres que la API no conoce ("UTI", "psiquiatría", "psicología", "paracetamol", "levotiroxina 50"): hace 5 llamadas fallidas, 22 llamadas a herramientas en lugar de 16 o 17, y cuesta un 35 % más. Esos errores además quedan en los contextos, y el juez le baja la Context Relevance a Y05. Con las opciones en la descripción no hubo ningún error de la API en ninguna corrida. Las descripciones más largas duplican los tokens de entrada (unos 45 000 contra 22 000–27 000 por corrida), pero la entrada es barata, la mitad sale de la caché y el modelo razona menos, así que el costo total baja.
+
+### Dónde falló el agente
+
+Con el juez, ninguna pregunta de v1 bajó de 5. Pero leyendo los logs aparecen fallas que el juez no castigó.
+
+- **A10 (pediatría), en v1, en las dos repeticiones y en v0.** El agente busca, por ejemplo, "acompañante en internación de pediatría puede quedarse". El recuperador devuelve un solo fragmento, y es la regla general de internación ("se permite un acompañante por paciente internado durante la noche, salvo en terapia intensiva"), no la de pediatría ("madre, padre o tutor pueden permanecer las 24 horas"). La respuesta es fiel a ese contexto, así que el juez le pone 5, pero es menos precisa que la referencia: no dice que la permanencia es de 24 horas. La causa está en el recuperador. Con k = 1 (la configuración óptima de la Parte 1), el reranker eligió `internacion/Acompañante` con un puntaje de 0,39 a 0,60, y `visitas/Pediatría` quedó 2° o 3°, a menos de 0,4 del primero. En las otras 13 búsquedas del agente, el mejor fragmento sacó 0,88 o más y el segundo quedó a más de 0,5.
+- **El arreglo, `v2-margen`:** `config/agent_retriever.json` usa el mismo encoder, el mismo chunking y el mismo reranker que la Parte 1, pero con un corte adaptativo, `top_k = 3` y `max_margin = 0,45`. Cuando el reranker está seguro devuelve un fragmento, y cuando duda devuelve los que quedan cerca del mejor. En las 14 búsquedas de v2 (dev y set propio), solo la de A10 devolvió más de un fragmento (tres), y la respuesta pasó a ser la correcta ("madre, padre o tutor pueden permanecer las 24 horas"). El precio es que el juez ve dos fragmentos de más en A10 y baja su Context Relevance a 4 (4,92 de promedio). Preferimos una respuesta correcta a un punto de CR. El margen de 0,45 sale de mirar los puntajes de las búsquedas de v1 en dev y en el set propio, así que es una elección informada por esos datos. `recuperar.py` (Parte 1) sigue usando `config/retriever.json`, con k = 1.
+- **A09 (espera en verde).** La respuesta da los 135 minutos, pero no aclara, como la referencia, que eso supera las 2 horas que el triage fija para el nivel verde. El agente solo consultó la API, que es la herramienta esperada, y el juez le puso 5 en Answer Relevance. En la pregunta Y12 del set propio, que pide explícitamente el máximo, el agente sí combinó `consultar_espera` con `buscar_documentos`.
+- **Días de la semana (A07, A11).** El agente agrega el día de la semana ("miércoles 7 de octubre"), que la API no informa. El dato es correcto, porque el 7 y el 14 de octubre de 2026 caen miércoles, pero no está en los contextos. El juez no lo penalizó en Faithfulness.
+
+Conclusión: en dev el juez está saturado (5,00 en casi todo), y los problemas reales solo se ven leyendo los logs. Por eso cada corrida deja el suyo.
+
+### Modelo y precios
+
+El id `deepseek/deepseek-v4-flash-0731` sigue en el catálogo de OpenRouter, pero el 2026-10-04 su precio era USD 0,0152 / 1,28 por millón de tokens (entrada / salida), distinto del 0,04 / 0,64 de la consigna. Los costos de este informe son los que devolvió OpenRouter en cada llamada, no estimaciones hechas con la tabla de precios.
+
+### Costo de ejecución
+
+Cada corrida de 12 preguntas hace 24 llamadas al modelo y tarda entre 2,5 y 3 minutos en CPU. De ese tiempo, unos 20 s son la carga de e5-large y del reranker, que se hace una sola vez y recién en la primera búsqueda en documentos. El agente cuesta unos USD 0,004 por corrida, unos USD 0,0003 por pregunta. El juez del evaluador cuesta unas 4 veces más, alrededor de USD 0,017 por corrida.
 
 ## Parte 3: las mismas herramientas como servidor MCP
 
@@ -156,7 +215,13 @@ Pendiente.
 
 ## Costo total en OpenRouter
 
-Parte 1: USD 0 (no usa LLM). El resto queda pendiente.
+| Parte | Agente | Juez | Total |
+|---|---|---|---|
+| 1 (sin LLM) | 0 | 0 | 0 |
+| 2: 7 corridas de `experimentos/agente/` | USD 0,0283 | USD 0,1205 | USD 0,1488 |
+| 2: prueba de humo de 2 preguntas, fuera de `experimentos/` | USD 0,0011 | — | USD 0,0011 |
+
+Los números de la Parte 2 salen de los logs y de los `.eval.json` (ver `experimentos/agente/RESULTS.md`). Las partes 3 a 5 quedan pendientes, igual que contrastar el total con el dashboard de actividad de OpenRouter.
 
 ## Apéndice: tablas completas de la Parte 1
 
