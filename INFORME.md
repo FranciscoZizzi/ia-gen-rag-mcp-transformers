@@ -203,7 +203,114 @@ Cada corrida de 12 preguntas hace 24 llamadas al modelo y tarda entre 2,5 y 3 mi
 
 ## Parte 3: las mismas herramientas como servidor MCP
 
-Pendiente.
+### Resumen
+
+`servidor_mcp.py` expone las seis herramientas de la Parte 2 como un servidor MCP. Usa FastMCP, del SDK oficial `mcp` 1.x, con transporte stdio. `agente_mcp.py` es el agente de la Parte 2 sin herramientas propias: lanza el servidor con `MCPServerStdio` (de `openai-agents`), descubre las herramientas con `tools/list` y las llama con `tools/call`. El modelo es el mismo, `deepseek/deepseek-v4-flash-0731` vía OpenRouter.
+
+| Corrida entregada (`respuestas_mcp.jsonl`, dev) | Ruteo | Context Relevance | Faithfulness | Answer Relevance | Costo del agente |
+|---|---|---|---|---|---|
+| `v2-margen` por MCP | **1,00** | **5,00** | **5,00** | **5,00** | USD 0,003789 |
+
+El log de la corrida está en `respuestas_mcp.log.md` y su evaluación, en `respuestas_mcp.jsonl.eval.json`. Son copias de `experimentos/agente_mcp/v2-margen/`. Para reproducirla:
+
+```bash
+python3 api/servidor.py &
+export OPENROUTER_API_KEY=...
+python3 agente_mcp.py --preguntas datos/preguntas_agente_dev.jsonl --salida respuestas_mcp.jsonl   # también escribe respuestas_mcp.log.md
+python3 evaluar/evaluar.py agente --preguntas datos/preguntas_agente_dev.jsonl --respuestas respuestas_mcp.jsonl
+```
+
+### Diseño: que la comparación mida solo el protocolo
+
+El objetivo es que la Parte 2 y la Parte 3 difieran únicamente en cómo viajan las herramientas: llamadas a funciones de Python en la Parte 2 y mensajes MCP por stdio en la Parte 3. Todo lo demás es igual, y los tests lo verifican.
+
+- **Las herramientas están en un solo lugar.** Cada `@mcp.tool()` de `servidor_mcp.py` es una función de una línea que llama al método correspondiente de `HospitalTools` (`assistant/tools.py`), el mismo que usa la Parte 2. `agente_mcp.py` no tiene código propio para la API ni para el recuperador; un test revisa sus imports.
+- **Descripciones idénticas.** El servidor toma la descripción de cada herramienta de `HospitalTools.descriptions()` al arrancar, con las opciones que informa la API, igual que `agente.py`. Un test lanza el servidor por stdio con un cliente MCP real, sin LLM, y comprueba que lo que devuelve `tools/list` es idéntico, carácter por carácter, a esas descripciones. Otro test comprueba que `tools/call` devuelve el mismo texto que la herramienta llamada directamente.
+- **Mismo prompt, mismo modelo y mismos parámetros.** Los dos agentes se arman con la misma función: las mismas instrucciones, `temperature = 0`, hasta 8 turnos, 3 reintentos por pregunta y la misma captura de usage. El servidor usa el mismo recuperador que la Parte 2 (`config/agent_retriever.json`).
+- **Contextos normalizados.** El SDK devuelve el resultado de una herramienta MCP como un bloque `{"type": "text", "text": ...}`, no como texto plano. Sin normalizarlo, el juez habría recibido los contextos envueltos en ese JSON. La traza extrae el texto. Un test corre los dos agentes con los mismos turnos de un modelo guionado y comprueba que escriben **filas idénticas**: misma respuesta, mismos `contextos` y mismas `herramientas`.
+- **Esquemas estrictos.** FastMCP declara los argumentos como objetos abiertos, y el SDK no puede pasar un objeto abierto a modo estricto. Así, el modelo habría visto esquemas distintos a los de la Parte 2, que usa `function_tool` con esquema estricto. Para evitarlo, el servidor declara `additionalProperties: false` y el agente pide `convert_schemas_to_strict`. El modelo recibe los mismos esquemas que en la Parte 2. Solo cambia el `title` interno que genera cada librería (`buscar_documentosArguments` en lugar de `buscar_documentos_args`).
+- **Timeout de arranque.** El servidor carga e5-large y el reranker y embebe el corpus antes de responder `initialize`. Por eso el recuperador se carga una sola vez y no en la primera búsqueda. En una prueba sin LLM, el arranque tardó 112 s con los modelos ya descargados. El SDK corta la sesión a los 5 s por defecto, así que `agente_mcp.py` espera hasta 900 s, para cubrir también una primera corrida que tenga que descargar unos 4,5 GB de modelos. Mientras carga, stdout se redirige a stderr, porque stdout es el canal del protocolo.
+
+### Parte 2 contra Parte 3
+
+Los números salen de `experimentos/agente_mcp/COMPARACION.md` y `experimentos/agente_mcp/RESULTS.md`, que genera `scripts/summarize_agent_runs.py` a partir de los `.eval.json` y los logs. Costos en USD.
+
+| Set | Corrida | Parte | Ruteo | CR | F | AR | Llamadas al modelo | Llamadas a herramientas | Tokens de entrada | Tokens de salida (razonamiento) | Costo agente | Costo juez |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| dev | `v2-margen` | 2 | 1,00 | 4,917 | 5,000 | 5,000 | 24 | 15 | 44 982 | 2 311 (818) | 0,003642 | 0,01629 |
+| dev | `v2-margen` | 3 (MCP) | 1,00 | 5,000 | 5,000 | 5,000 | 24 | 15 | 44 898 | 2 329 (896) | 0,003789 | 0,01593 |
+| dev | `v2-margen-rep2` | 3 (MCP) | 1,00 | 5,000 | 5,000 | 5,000 | 24 | 15 | 44 994 | 2 234 (794) | 0,003550 | 0,01835 |
+| propio | `extra/v2-margen` | 2 | 1,00 | 5,000 | 5,000 | 5,000 | 24 | 16 | 45 170 | 2 476 (1 107) | 0,003856 | 0,01857 |
+| propio | `extra/v2-margen` | 3 (MCP) | 1,00 | 5,000 | 5,000 | 4,917 | 24 | 16 | 45 278 | 2 463 (1 131) | 0,003968 | 0,01798 |
+
+Las dos partes hacen el mismo trabajo: el mismo ruteo, las mismas 24 llamadas al modelo, la misma cantidad de llamadas a herramientas, unos 45 000 tokens de entrada y un costo del agente dentro del mismo rango. En cada set cambia una sola nota del juez, en una sola pregunta, y en sentidos opuestos: sube la CR de A10 en dev y baja la AR de Y09 en el set propio.
+
+### Ruido o protocolo
+
+Para saber si esas diferencias vienen del transporte, las comparamos con lo que cambia entre dos corridas **idénticas** de la misma parte. En la Parte 2 son `v1-base` y `v1-base-rep2`, y en la Parte 3, `v2-margen` y `v2-margen-rep2`. Aunque la temperatura es 0, el modelo no es determinista. Los números de esta tabla salen de comparar los `respuestas*.jsonl` y las llamadas registradas en los logs de cada par de corridas.
+
+| Comparación | Respuestas idénticas | Contextos idénticos | Mismas llamadas y argumentos | Notas del juez distintas |
+|---|---|---|---|---|
+| **Ruido, Parte 2:** `v1-base` contra `v1-base-rep2` | 5/12 | 12/12 | 10/12 | ninguna |
+| **Ruido, Parte 3:** `v2-margen` contra `v2-margen-rep2` | 6/12 | 11/12 | 9/12 | ninguna |
+| Parte 2 contra Parte 3, dev, corrida 1 | 5/12 | 11/12 | 9/12 | A10 |
+| Parte 2 contra Parte 3, dev, repetición | 5/12 | 11/12 | 8/12 | A10 |
+| Parte 2 contra Parte 3, set propio | 3/12 | 11/12 | 9/12 | Y09 |
+
+**Conclusión: todas las diferencias entre la Parte 2 y la Parte 3 están dentro del ruido.**
+- Entre dos corridas idénticas ya cambia la redacción de más de la mitad de las respuestas y la consulta de 2 o 3 búsquedas. Entre partes cambia lo mismo y en la misma proporción.
+- Las consultas que cambian son reformulaciones de una o dos palabras: "quién" en lugar de "quiénes", "gestación" en lugar de "embarazo", "de la farmacia" en lugar de "en la farmacia".
+- No encontramos ninguna diferencia atribuible al protocolo en las métricas, en las herramientas elegidas, en los tokens ni en el costo.
+- Del protocolo solo es el tiempo, que se analiza más abajo.
+
+### Pregunta por pregunta
+
+- **A10 (pediatría, dev): CR 4 en la Parte 2 y 5 en la Parte 3. Es ruido, y además esconde una regresión que el juez no detectó.**
+  - En la corrida entregada de MCP, el agente buscó "acompañante de un niño durante la internación en pediatría". Con esa redacción, el reranker quedó seguro y el corte adaptativo devolvió **un solo fragmento, el equivocado**: la regla general de internación ("se permite un acompañante por paciente internado durante la noche"). La respuesta volvió a ser la de v1, menos precisa que la referencia, que dice que madre, padre o tutor pueden quedarse las 24 horas.
+  - **El juez no detectó la regresión:** le puso 5/5/5, porque la respuesta es fiel a un contexto corto. La CR "mejoró" justamente porque el contexto tenía menos fragmentos.
+  - En la repetición, la consulta fue "acompañante en internación de pediatría puede quedarse": volvieron los tres fragmentos y la respuesta correcta, y el juez también le puso 5. En la Parte 2, ese mismo tipo de contexto de tres fragmentos había recibido un 4. Es decir, el juez tampoco puntúa de forma estable el mismo tipo de contexto.
+  - **Esto refuerza el riesgo de sobreajuste del margen 0,45.** Ese margen se eligió mirando los puntajes de las búsquedas de v1, y la corrección de A10 depende de cómo redacte la consulta el modelo. Basta con cambiar dos palabras para que el reranker quede seguro y el margen no se active. Con un solo caso no hay evidencia de que el arreglo generalice.
+- **Y09 (kinesiología, set propio): AR 5 en la Parte 2 y 4 en la Parte 3. Es ruido de redacción.** Las llamadas y los contextos son idénticos en las dos partes. Esta vez la respuesta no menciona que hay que llevar la orden médica, y la justificación del juez dice exactamente eso. La respuesta de la Parte 2 sí la nombraba.
+- **Y12 (espera en amarillo, set propio): contextos distintos, misma nota (5/5/5). Es ruido.** La consulta salió con otra redacción ("tiempo máximo de espera en guardia según clasificación triage amarillo"). Con ella, el corte adaptativo dejó pasar un segundo fragmento del mismo documento de triage, y el juez no lo castigó.
+
+### Los tres intentos de la corrida entregada
+
+La corrida de dev de MCP se intentó tres veces en la misma carpeta, y solo el tercer intento forma parte de los resultados. En los dos intentos fallidos, el servidor MCP, las herramientas y la API del hospital funcionaron. **Las fallas fueron de red, entre la computadora y OpenRouter, no del código.**
+
+1. **Primer intento:** A01 a A11 se completaron, y A12 falló los tres reintentos con `APIConnectionError`. No se corrió el juez. Según la salida del agente, ese intento costó USD 0,003024.
+2. **Segundo intento:** fallaron las 12 preguntas con `APIConnectionError`, y no hubo ningún cobro. El diagnóstico mostró que algo en la red local interceptaba HTTPS de forma intermitente y presentaba un certificado autofirmado. La librería `httpx`, que usa el cliente de OpenAI, rechazaba la conexión (`CERTIFICATE_VERIFY_FAILED: self-signed certificate in certificate chain`). Minutos después, el certificado volvió a ser el legítimo.
+3. **Tercer intento:** se corrió después de verificar la conexión y se completó sin errores. Es la corrida entregada.
+
+Cada intento sobrescribió la carpeta del anterior, así que **los logs `.md` de los dos intentos fallidos no se conservan**. Lo que se sabe de ellos sale de la salida por consola y del diagnóstico que hicimos en el momento.
+
+### Costo
+
+| Concepto | USD |
+|---|---|
+| Corridas de `experimentos/agente_mcp/` (`RESULTS.md`): agente | 0,011307 |
+| Corridas de `experimentos/agente_mcp/` (`RESULTS.md`): juez | 0,05226 |
+| Primer intento fallido de la corrida de dev: agente, según su salida por consola | 0,003024 |
+| **Total según los registros** | **≈ 0,0666** |
+| Subida del contador de uso de la cuenta (`/api/v1/key`), entre antes del primer intento y después de la última evaluación | ≈ 0,0635 |
+
+Hay una diferencia de unos USD 0,003 entre los registros y el contador de la cuenta. Además, durante el primer intento el contador subió USD 0,003292, un poco más que los USD 0,003024 que registró el agente. Todavía no sabemos a qué se deben estas diferencias. [COMPLETAR: contrastar estos montos con el dashboard de actividad de OpenRouter y anotar el resultado.]
+
+### Tiempo
+
+- **Por pregunta, la Parte 3 tarda menos:** la suma de los tiempos por pregunta es de 126 s en la corrida de dev y de 97 s en la repetición, contra 176 s de `v2-margen` en la Parte 2. Esto pasa porque el recuperador se carga al arrancar el servidor y no dentro de la primera búsqueda.
+- **Pero hay que sumar el arranque:** antes de la primera pregunta, el servidor tarda entre unos 60 s, en la corrida entregada, y 112 s, en la prueba sin LLM, en cargar los modelos y embeber el corpus.
+
+El tiempo total de una corrida queda en el mismo orden en las dos partes. La diferencia solo cambia en qué momento se paga la carga del recuperador.
+
+### MCP Inspector
+
+Para verificar que el servidor funciona con cualquier cliente MCP, también se conectó al MCP Inspector, que no usa ningún LLM:
+
+```bash
+npx @modelcontextprotocol/inspector python3 servidor_mcp.py
+```
+
+[COMPLETAR: capturas de pantalla de la llamada a cada una de las seis herramientas desde el Inspector, en `experimentos/inspector/`, y una línea por herramienta con lo que devolvió.]
 
 ## Parte 4: una capa de atención en NumPy
 
