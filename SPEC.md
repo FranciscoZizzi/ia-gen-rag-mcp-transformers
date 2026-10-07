@@ -154,3 +154,35 @@ The API is the real `api/servidor.py` on a free port and the retriever the lexic
 - [x] One `.log.md` per benchmark run, in `experimentos/agente/`.
 - [x] `INFORME.md` analyses the questions where the agent failed, from the logs.
 - [x] `pytest` passes offline.
+
+# SPEC — Part 3: the tools as an MCP server
+
+Plan and rationale: `docs/plans/part3-mcp.md`.
+
+## Contract
+
+```bash
+python3 api/servidor.py &
+OPENROUTER_API_KEY=... python3 agente_mcp.py --preguntas <questions.jsonl> --salida <answers.jsonl> \
+    [--log <run.log.md>] [--modelo <openrouter id>] [--api-url <url>] [--config config/agent_retriever.json]
+python3 servidor_mcp.py [--api-url <url>] [--config config/agent_retriever.json]   # stdio; agente_mcp.py launches it
+```
+
+- **Server**: FastMCP from the official `mcp` 1.x SDK, stdio transport. The six tools of Part 2, same names, each an `@mcp.tool()` that delegates to `HospitalTools`. Descriptions are `HospitalTools.descriptions()`, read once at start-up; argument objects are closed (`additionalProperties: false`); results are plain text, with no `outputSchema`. The retriever loads once, before the server answers `initialize`. Nothing but the protocol goes to stdout.
+- **Client**: the Part 2 agent (same prompt, model, settings, retries and usage capture) with `mcp_servers=[MCPServerStdio(servidor_mcp.py)]` and strict schemas. The server gets the client's environment minus `OPENROUTER_API_KEY`; `--api-url` and `--config` are passed through to it. `agente_mcp.py` has no code of its own for the API or the retriever.
+- **Output and log**: exactly as Part 2. `contextos` holds each tool result as plain text (MCP text blocks unwrapped). The log defaults to `<salida without .jsonl>.log.md` and names the transport in its header.
+
+## Tested seams
+
+| Seam | Covers |
+|---|---|
+| `servidor_mcp.build_server` | The six tools, Part 2 descriptions and arguments, closed schemas, no output schema, retriever built once at start-up, clean stdout |
+| `servidor_mcp.py` over stdio | `tools/list` and `tools/call` from a real `ClientSession` match the in-process tools, errors with options included |
+| `agente_mcp.main` | Row format; the model sees the Part 2 descriptions and schemas (all but the schema title); same rows as `agente.py` for the same model turns; the log; a failing question still gets a row; no API or retriever imports |
+
+## Acceptance
+
+- [x] `pytest` passes offline, including the stdio server and `agente_mcp.main` over it.
+- [ ] Benchmark run on dev with its log and `.eval.json` in `experimentos/agente_mcp/`, copied to `respuestas_mcp.*`.
+- [ ] `INFORME.md` compares the four metrics and the cost with Part 2 and explains any difference from the logs.
+- [ ] MCP Inspector screenshots of the six tools in `experimentos/inspector/`.
