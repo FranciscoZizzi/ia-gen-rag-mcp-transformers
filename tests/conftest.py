@@ -1,4 +1,5 @@
 """Shared fixtures: the real hospital API on a free port and an offline lexical retriever."""
+import json
 import socket
 import subprocess
 import sys
@@ -40,6 +41,19 @@ def api_url():
     yield url
     server.kill()
     server.wait()
+
+
+@pytest.fixture
+def lexical_config(tmp_path) -> Path:
+    """A retriever configuration file with the offline lexical encoder, for code that loads one by path."""
+    path = tmp_path / "retriever.json"
+    path.write_text(json.dumps({
+        "corpus_dir": "datos/corpus",
+        "encoder": {"type": "hashing_bow"},
+        "chunking": {"strategy": "section", "max_chars": 700, "metadata": True},
+        "selection": {"top_k": 1},
+    }), encoding="utf-8")
+    return path
 
 
 @pytest.fixture(scope="session")
