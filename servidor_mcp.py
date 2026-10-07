@@ -20,12 +20,26 @@ from rag.config import load_config
 from rag.retriever import Retriever
 
 
+class _ClosedArgumentsFastMCP(FastMCP):
+    """Declares that each tool takes exactly its listed arguments (additionalProperties: false).
+
+    FastMCP leaves argument objects open, and the Agents SDK will not turn an open object into a strict
+    schema, so without this the model would see different argument schemas than in Part 2.
+    """
+
+    async def list_tools(self):
+        listed = await super().list_tools()
+        for tool in listed:
+            tool.inputSchema.setdefault("additionalProperties", False)
+        return listed
+
+
 def build_server(tools: HospitalTools) -> FastMCP:
     with redirect_stdout(sys.stderr):  # model loading must not write into the protocol stream
         descriptions = tools.descriptions()
         tools.retriever  # noqa: B018 - load the encoder and reranker now, not on the first search
 
-    mcp = FastMCP("hospital-arroyo-claro", log_level="WARNING")
+    mcp = _ClosedArgumentsFastMCP("hospital-arroyo-claro", log_level="WARNING")
 
     @mcp.tool(name="buscar_documentos", description=descriptions["buscar_documentos"], structured_output=False)
     def buscar_documentos(consulta: str) -> str:

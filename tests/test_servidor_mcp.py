@@ -44,6 +44,7 @@ def test_the_server_offers_the_six_tools_with_the_part_2_descriptions_and_argume
         schema = listed[function_tool.name].inputSchema
         assert sorted(schema.get("properties", {})) == sorted(function_tool.params_json_schema["properties"])
         assert sorted(schema.get("required", [])) == sorted(function_tool.params_json_schema.get("required", []))
+        assert schema["additionalProperties"] is False  # closed, as the strict Part 2 schemas are
         assert listed[function_tool.name].outputSchema is None  # plain text, like the Part 2 tools
 
 

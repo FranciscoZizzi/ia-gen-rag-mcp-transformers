@@ -61,8 +61,9 @@ def test_the_model_sees_the_six_tools_with_the_part_2_descriptions_and_schemas(r
     assert sorted(model.tool_specs) == sorted(TOOL_NAMES)
     for name, (description, schema) in model.tool_specs.items():
         assert description == part2[name].description
-        assert sorted(schema["properties"]) == sorted(part2[name].params_json_schema["properties"])
-        assert schema.get("additionalProperties") is False  # strict, like the Part 2 function tools
+        # Strict and identical to Part 2 but for the schema's own title, a name each library makes up.
+        untitled = {key: value for key, value in schema.items() if key != "title"}
+        assert untitled == {key: value for key, value in part2[name].params_json_schema.items() if key != "title"}
 
 
 def test_rows_match_part_2_for_the_same_model_turns(run):
@@ -108,5 +109,6 @@ def test_agente_mcp_has_no_code_of_its_own_for_the_api_or_the_retriever():
     imported = {node.module for node in ast.walk(tree) if isinstance(node, ast.ImportFrom)}
     imported |= {alias.name for node in ast.walk(tree) if isinstance(node, ast.Import) for alias in node.names}
 
+    allowed = {"rag.io"}  # JSONL reading and writing, shared with the other CLIs
     assert not any(module == "rag" or module.startswith(("rag.", "assistant.tools", "assistant.hospital_api"))
-                   for module in imported)
+                   for module in imported - allowed)

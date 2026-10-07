@@ -10,6 +10,7 @@ from typing import Any
 import httpx
 from agents import (Agent, FunctionTool, Model, ModelSettings, OpenAIChatCompletionsModel, Runner,
                     function_tool, set_tracing_disabled)
+from agents.mcp import MCPServer
 from openai import AsyncOpenAI
 
 from assistant.tools import TOOL_NAMES, HospitalTools
@@ -131,6 +132,14 @@ def build_agent(tools: HospitalTools, model: Model) -> Agent:
     return _new_agent(model, tools=build_tools(tools))
 
 
+def build_mcp_agent(server: MCPServer, model: Model) -> Agent:
+    """Part 3: the same agent, with its tools discovered from an MCP server (tools/list) and called through it.
+
+    Strict schemas, as function_tool gives the Part 2 tools, so the model sees the same kind of arguments.
+    """
+    return _new_agent(model, mcp_servers=[server], mcp_config={"convert_schemas_to_strict": True})
+
+
 def _new_agent(model: Model, **tool_sources: Any) -> Agent:
     """The one agent setup, whatever serves the tools: same name, prompt and model settings."""
     set_tracing_disabled(True)  # tracing uploads to OpenAI and fails without an OpenAI key
@@ -176,7 +185,7 @@ def _trace(result, question_id: str, question: str, usages: list[dict[str, Any]]
         if item.type == "tool_call_output_item":
             raw = item.raw_item
             call_id = raw["call_id"] if isinstance(raw, dict) else raw.call_id
-            outputs[call_id] = item.output if isinstance(item.output, str) else json.dumps(item.output, ensure_ascii=False)
+            outputs[call_id] = _tool_output_text(item.output)
 
     model_calls = []
     for index, response in enumerate(result.raw_responses):
@@ -198,3 +207,18 @@ def _trace(result, question_id: str, question: str, usages: list[dict[str, Any]]
     final = result.final_output
     return AgentRun(question_id, question, answer=final if isinstance(final, str) else str(final or ""),
                     model_calls=model_calls)
+
+
+def _tool_output_text(output: Any) -> str:
+    """A tool result as the text the tool returned.
+
+    function_tool hands back the string itself; an MCP tool comes back as text content blocks
+    ({"type": "text", "text": ...}), which are unwrapped so both parts record the same contextos.
+    """
+    if isinstance(output, str):
+        return output
+    blocks = output if isinstance(output, list) else [output]
+    texts = [block.get("text") if isinstance(block, dict) else getattr(block, "text", None) for block in blocks]
+    if blocks and all(isinstance(text, str) for text in texts):
+        return "\n\n".join(texts)
+    return json.dumps(output, ensure_ascii=False, default=str)
