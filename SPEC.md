@@ -183,6 +183,6 @@ python3 servidor_mcp.py [--api-url <url>] [--config config/agent_retriever.json]
 ## Acceptance
 
 - [x] `pytest` passes offline, including the stdio server and `agente_mcp.main` over it.
-- [ ] Benchmark run on dev with its log and `.eval.json` in `experimentos/agente_mcp/`, copied to `respuestas_mcp.*`.
-- [ ] `INFORME.md` compares the four metrics and the cost with Part 2 and explains any difference from the logs.
+- [x] Benchmark run on dev with its log and `.eval.json` in `experimentos/agente_mcp/`, copied to `respuestas_mcp.*` (routing 1.00, 5.00 / 5.00 / 5.00; plus a dev repetition and the extra set).
+- [x] `INFORME.md` compares the four metrics and the cost with Part 2 and explains any difference from the logs (all within run-to-run noise; A10, Y09 and Y12 analysed).
 - [x] MCP Inspector screenshots of the six tools in `experimentos/inspector/` (connection, `tools/list` and one call per tool; launched with `connectionTimeout` 300000 ms, see `INFORME.md`).
