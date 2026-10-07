@@ -24,8 +24,9 @@ from rag.io import read_jsonl, write_jsonl
 REPO_ROOT = Path(__file__).resolve().parent
 SERVER = REPO_ROOT / "servidor_mcp.py"
 DEFAULT_RETRIEVER_CONFIG = REPO_ROOT / "config" / "agent_retriever.json"
-# The server loads the encoder and reranker before answering initialize (~20 s, longer on a first download).
-SERVER_TIMEOUT_SECONDS = 300
+# The server loads the encoder and reranker and embeds the corpus before answering initialize: 112 s on an
+# 8-core CPU with the models cached, and a first run also downloads ~4.5 GB. Tool calls take about a second.
+SERVER_TIMEOUT_SECONDS = 900
 
 
 def mcp_server(api_url: str | None, config: Path) -> MCPServerStdio:
