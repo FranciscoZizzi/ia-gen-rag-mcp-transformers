@@ -12,8 +12,8 @@ from pathlib import Path
 
 from agents import Model
 
-from assistant.agent import (DEFAULT_MODEL, UsageRecorder, answer, build_agent, openrouter_model,
-                             recording_http_client)
+from assistant.agent import (DEFAULT_MODEL, UsageRecorder, build_agent, openrouter_model, recording_http_client,
+                             run_questions)
 from assistant.hospital_api import HospitalApi
 from assistant.report import write_log
 from assistant.tools import DEFAULT_RETRIEVER_CONFIG, REPO_ROOT, HospitalTools
@@ -40,13 +40,7 @@ def main(argv: list[str] | None = None, model: Model | None = None) -> None:
     async def run_all():
         async with recording_http_client(recorder) as http_client:
             agent = build_agent(tools, model or openrouter_model(args.modelo, http_client))
-            return [await run_one(agent, question) for question in questions]
-
-    async def run_one(agent, question):
-        run = await answer(agent, question["id"], question["pregunta"], recorder)
-        print(f"{run.question_id}  {', '.join(run.tools) or '-'}  USD {run.cost:.6f}"
-              + (f"  ERROR {run.error}" if run.error else ""), flush=True)
-        return run
+            return await run_questions(agent, questions, recorder)
 
     runs = asyncio.run(run_all())
     write_jsonl(args.salida, (run.to_row() for run in runs))
