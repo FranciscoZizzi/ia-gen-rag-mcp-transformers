@@ -304,13 +304,47 @@ El tiempo total de una corrida queda en el mismo orden en las dos partes. La dif
 
 ### MCP Inspector
 
-Para verificar que el servidor funciona con cualquier cliente MCP, también se conectó al MCP Inspector, que no usa ningún LLM:
+Para verificar que el servidor funciona con cualquier cliente MCP, lo conectamos también al MCP Inspector 2.9.0, que no usa ningún LLM, y desde ahí llamamos a cada una de las seis herramientas con la configuración real (e5-large y el reranker).
 
-```bash
-npx @modelcontextprotocol/inspector python3 servidor_mcp.py
+El comando de la consigna (`npx @modelcontextprotocol/inspector python3 servidor_mcp.py`) no alcanzó, por dos motivos. Por eso lanzamos el Inspector con un archivo de configuración (`--config`), fuera del repo:
+
+- **Timeout.** El servidor tarda unos 112 s en responder `initialize`, porque antes carga los modelos y embebe el corpus. El Inspector corta la conexión a los 30 s por defecto. En el archivo pusimos el campo `connectionTimeout` del servidor en 300 000 ms.
+- **Red.** Para evitar los problemas de red descritos más arriba, el servidor se lanzó con `HF_HUB_OFFLINE=1`. Así usa los modelos que ya están en la caché y no consulta Hugging Face al arrancar.
+
+```json
+{
+  "mcpServers": {
+    "hospital": {
+      "type": "stdio",
+      "command": "<python del entorno virtual>",
+      "args": ["servidor_mcp.py", "--api-url", "http://127.0.0.1:8765"],
+      "cwd": "<raíz del repositorio>",
+      "env": { "HF_HUB_OFFLINE": "1", "PYTHONIOENCODING": "utf-8" },
+      "connectionTimeout": 300000,
+      "requestTimeout": 300000
+    }
+  }
+}
 ```
 
-[COMPLETAR: capturas de pantalla de la llamada a cada una de las seis herramientas desde el Inspector, en `experimentos/inspector/`, y una línea por herramienta con lo que devolvió.]
+```bash
+npx @modelcontextprotocol/inspector@2.9.0 --web --config <archivo>.json
+```
+
+Capturas, en `experimentos/inspector/`:
+
+| Captura | Qué muestra |
+|---|---|
+| `00_conectado.png` | El servidor `hospital` conectado por stdio (MCP 2025-11-25) |
+| `01_lista_herramientas.png` | `tools/list`: las seis herramientas, con la descripción de `buscar_documentos` (incluye los temas de los documentos) y su argumento `consulta` |
+| `02_buscar_documentos.png` | Tres fragmentos de pediatría, entre ellos *Régimen de visitas — Pediatría* ("madre, padre o tutor pueden permanecer las 24 horas") |
+| `03_consultar_camas.png` | `pediatria`: 24 camas, 17 ocupadas y 7 libres |
+| `04_consultar_guardia.png` | `cardiologia`: Dr. Julián Ferreyra (08:00-20:00) y Dra. Paula Benítez (20:00-08:00) |
+| `05_consultar_turnos.png` | `dermatologia`: turnos el 2026-11-03 a las 11:00 y el 2026-11-05 a las 11:30 |
+| `06_consultar_farmacia.png` | `levotiroxina 50 mcg`: stock de 90 comprimidos |
+| `07_consultar_espera.png` | Minutos de espera por nivel de triage: rojo 0, naranja 7, amarillo 48, verde 135, azul 210 |
+
+Las seis herramientas respondieron desde el Inspector con el mismo JSON y los mismos fragmentos que reciben los agentes, sin pasar por ningún modelo.
 
 ## Parte 4: una capa de atención en NumPy
 
