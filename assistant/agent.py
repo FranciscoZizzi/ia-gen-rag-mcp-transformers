@@ -128,10 +128,27 @@ def build_tools(tools: HospitalTools) -> list[FunctionTool]:
 
 
 def build_agent(tools: HospitalTools, model: Model) -> Agent:
+    return _new_agent(model, tools=build_tools(tools))
+
+
+def _new_agent(model: Model, **tool_sources: Any) -> Agent:
+    """The one agent setup, whatever serves the tools: same name, prompt and model settings."""
     set_tracing_disabled(True)  # tracing uploads to OpenAI and fails without an OpenAI key
     return Agent(name="Asistente Hospital Arroyo Claro", instructions=INSTRUCTIONS, model=model,
-                 tools=build_tools(tools),
-                 model_settings=ModelSettings(temperature=0, extra_body={"usage": {"include": True}}))
+                 model_settings=ModelSettings(temperature=0, extra_body={"usage": {"include": True}}),
+                 **tool_sources)
+
+
+async def run_questions(agent: Agent, questions: list[dict[str, Any]],
+                        recorder: UsageRecorder | None = None) -> list[AgentRun]:
+    """Answer each question in turn, printing one progress line per question."""
+    runs = []
+    for question in questions:
+        run = await answer(agent, question["id"], question["pregunta"], recorder)
+        print(f"{run.question_id}  {', '.join(run.tools) or '-'}  USD {run.cost:.6f}"
+              + (f"  ERROR {run.error}" if run.error else ""), flush=True)
+        runs.append(run)
+    return runs
 
 
 async def answer(agent: Agent, question_id: str, question: str, recorder: UsageRecorder | None = None,
