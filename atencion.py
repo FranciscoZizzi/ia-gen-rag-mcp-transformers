@@ -69,5 +69,15 @@ def multicabeza(X, cabezas, Wo, mascara=False):
 
 
 def layer_norm(x, eps=1e-5):
-    """Normalize each row to mean 0 and variance 1."""
-    raise NotImplementedError
+    """Normalize each row to mean 0 and variance 1.
+
+    Each token (row) is normalized on its own, over its features (last axis):
+    (x - mean) / sqrt(var + eps), with the population variance (divide by d, not d - 1). This keeps the
+    scale of the activations stable from layer to layer, whatever the sequence length or the other tokens.
+    eps avoids dividing by zero on a constant row. Shifting or scaling a row leaves the result unchanged,
+    up to the small effect of eps. No learned gain or bias (gamma, beta): the tests' signature has none.
+    """
+    x = np.asarray(x, dtype=float)
+    media = x.mean(axis=-1, keepdims=True)
+    varianza = x.var(axis=-1, keepdims=True)
+    return (x - media) / np.sqrt(varianza + eps)
