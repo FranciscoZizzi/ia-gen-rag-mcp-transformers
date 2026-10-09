@@ -57,8 +57,15 @@ def autoatencion(X, Wq, Wk, Wv, mascara=False):
 
 
 def multicabeza(X, cabezas, Wo, mascara=False):
-    """Multi-head attention over the heads [(Wq, Wk, Wv), ...]; returns the output projected by Wo."""
-    raise NotImplementedError
+    """Multi-head attention over the heads [(Wq, Wk, Wv), ...]; returns the output projected by Wo.
+
+    Each head is a self-attention with its own weights (and its own d_k), so different heads can attend to
+    different relations between the same tokens. The heads' outputs, each (n, d_v_h), are concatenated
+    side by side in list order into (n, sum of d_v_h), and Wo mixes them back into one representation.
+    The heads arrive already split: the caller decides how each one slices the model dimension.
+    """
+    salidas = [autoatencion(X, Wq, Wk, Wv, mascara=mascara)[0] for Wq, Wk, Wv in cabezas]
+    return np.concatenate(salidas, axis=-1) @ Wo
 
 
 def layer_norm(x, eps=1e-5):
