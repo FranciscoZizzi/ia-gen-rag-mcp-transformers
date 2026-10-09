@@ -22,8 +22,26 @@ def softmax(M):
 
 
 def atencion(Q, K, V, mascara=False):
-    """Scaled dot-product attention; returns (output, A) with A = softmax(Q K^T / sqrt(d_k))."""
-    raise NotImplementedError
+    """Scaled dot-product attention; returns (output, A) with A = softmax(Q K^T / sqrt(d_k)).
+
+    Q is (n_q, d_k), K is (n_k, d_k) and V is (n_k, d_v). Row i of Q K^T scores how well query i matches
+    each key. Dividing by sqrt(d_k) keeps the scores' spread independent of the dimension: a dot product of
+    d_k terms grows like sqrt(d_k), and without the scale the softmax saturates into a near one-hot row.
+    Each row of A is a probability distribution over the keys, and output = A V mixes the values with
+    those weights, so output is (n_q, d_v).
+
+    With mascara=True (causal mask), every score above the diagonal is set to -inf *before* the softmax:
+    token i may only attend to tokens 0..i, and each row still sums to 1 over the allowed positions.
+    Masking after the softmax would leave rows that no longer sum to 1.
+    """
+    Q, K, V = (np.asarray(M, dtype=float) for M in (Q, K, V))
+    d_k = K.shape[-1]
+    scores = Q @ K.T / np.sqrt(d_k)
+    if mascara:
+        future = np.triu(np.ones(scores.shape, dtype=bool), k=1)
+        scores = np.where(future, -np.inf, scores)
+    A = softmax(scores)
+    return A @ V, A
 
 
 def autoatencion(X, Wq, Wk, Wv, mascara=False):
