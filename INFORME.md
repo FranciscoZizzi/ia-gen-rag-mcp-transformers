@@ -346,7 +346,39 @@ Las seis herramientas respondieron desde el Inspector con el mismo JSON y los mi
 
 ## Parte 4: una capa de atención en NumPy
 
-Pendiente.
+`atencion.py`, en la raíz, implementa solo con NumPy las cinco funciones que describe `atencion/test_atencion.py`: `softmax`, `atencion`, `autoatencion` (con máscara causal opcional), `multicabeza` y `layer_norm`. Ningún valor está escrito a mano: el ejemplo de la clase ("the cat sat", d = 4) solo aparece como entrada de los tests.
+
+**Resultado: los 14 tests pasan,** con el archivo de tests tal cual lo entregó la cátedra.
+
+```text
+$ python3 atencion/test_atencion.py atencion.py
+test_escala_por_raiz_de_dk ... ok
+test_formas_con_n_distinto_de_d ... ok
+test_mascara_causal ... ok
+test_matriz_de_atencion ... ok
+test_permutar_filas_permuta_la_salida ... ok
+test_salida ... ok
+test_invariante_a_escala_y_corrimiento ... ok
+test_por_fila ... ok
+test_valor_de_la_clase ... ok
+test_dos_cabezas_concatenan_y_proyectan ... ok
+test_una_cabeza_con_wo_identidad_es_autoatencion ... ok
+test_estable_con_numeros_grandes ... ok
+test_filas_suman_uno ... ok
+test_valor_de_la_clase ... ok
+Ran 14 tests
+OK
+```
+
+Las convenciones salen de los tests:
+
+- **Vectores fila.** `X` es una matriz (n, d) con un token por fila, y cada proyección es `X @ W`.
+- **`softmax`** trabaja sobre el último eje y resta el máximo de cada fila antes de la exponencial, para que no haya desborde con números grandes.
+- **`atencion`** calcula `A = softmax(Q Kᵀ / √d_k)`, con `d_k` leído de K, y devuelve `A V` junto con `A`. La máscara causal pone −∞ arriba de la diagonal **antes** del softmax: así esos pesos dan exactamente 0 y cada fila sigue sumando 1.
+- **`multicabeza`** recibe las cabezas ya separadas, cada una con sus propias `(Wq, Wk, Wv)`. Concatena sus salidas en el orden de la lista y las proyecta con `Wo`.
+- **`layer_norm`** normaliza cada fila con la varianza poblacional y `eps` dentro de la raíz, sin gamma ni beta. Con [2, 0, 1, 1] da ±1,4142, el valor del test; con la varianza muestral daría 1,2247.
+
+`pytest` corre también estos 14 tests, a través de `tests/test_atencion_catedra.py`, que ejecuta el archivo de la cátedra sin modificarlo. Como control adicional comparamos las funciones con una implementación de referencia basada en `scipy` (`softmax` y `zscore`) sobre 200 casos al azar, con y sin máscara: la diferencia máxima fue 0. Esta parte no usa ningún LLM y su costo en OpenRouter es cero.
 
 ## Parte 5: un bloque de transformer a mano
 
