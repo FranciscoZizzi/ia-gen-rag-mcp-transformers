@@ -45,8 +45,15 @@ def atencion(Q, K, V, mascara=False):
 
 
 def autoatencion(X, Wq, Wk, Wv, mascara=False):
-    """Self-attention: queries, keys and values are all projections of the same tokens X."""
-    raise NotImplementedError
+    """Self-attention: queries, keys and values are all projections of the same tokens X.
+
+    X is (n, d). Q = X Wq and K = X Wk are (n, d_k), V = X Wv is (n, d_v): each token asks (query),
+    advertises what it holds (key) and carries content (value) through separate learned matrices, so
+    "what I look for" and "what I offer" can differ. Returns (output, A) with A (n, n) and output (n, d_v).
+    Permuting the rows of X permutes the output the same way: attention alone has no notion of order.
+    """
+    X = np.asarray(X, dtype=float)
+    return atencion(X @ Wq, X @ Wk, X @ Wv, mascara=mascara)
 
 
 def multicabeza(X, cabezas, Wo, mascara=False):
