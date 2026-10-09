@@ -285,15 +285,13 @@ Cada intento sobrescribió la carpeta del anterior, así que **los logs `.md` de
 
 ### Costo
 
-| Concepto | USD |
-|---|---|
-| Corridas de `experimentos/agente_mcp/` (`RESULTS.md`): agente | 0,011307 |
-| Corridas de `experimentos/agente_mcp/` (`RESULTS.md`): juez | 0,05226 |
-| Primer intento fallido de la corrida de dev: agente, según su salida por consola | 0,003024 |
-| **Total según los registros** | **≈ 0,0666** |
-| Subida del contador de uso de la cuenta (`/api/v1/key`), entre antes del primer intento y después de la última evaluación | ≈ 0,0635 |
+| Concepto | Agente | Juez | Total |
+|---|---|---|---|
+| 3 corridas de `experimentos/agente_mcp/` (`RESULTS.md`) | 0,011307 | 0,05226 | 0,063567 |
+| Primer intento fallido de la corrida de dev | 0,003292 | — | 0,003292 |
+| **Total de la Parte 3** | **0,014599** | **0,05226** | **0,066859** |
 
-Hay una diferencia de unos USD 0,003 entre los registros y el contador de la cuenta. Además, durante el primer intento el contador subió USD 0,003292, un poco más que los USD 0,003024 que registró el agente. Todavía no sabemos a qué se deben estas diferencias. [COMPLETAR: contrastar estos montos con el dashboard de actividad de OpenRouter y anotar el resultado.]
+El costo del intento fallido es lo que subió el contador de la key durante ese intento. El agente había registrado USD 0,003024 en su salida por consola, pero el log se sobrescribió. El contraste con el contador de la key, para toda la misión, está en "Costo total en OpenRouter".
 
 ### Tiempo
 
@@ -356,13 +354,37 @@ Pendiente.
 
 ## Costo total en OpenRouter
 
+**No tuvimos acceso al dashboard de actividad de OpenRouter,** porque la key es de la cuenta del grupo. Por eso contrastamos el costo registrado en el repo con el uso que informa la API para la key (`GET /api/v1/key`), consultada el 2026-10-09. Ese contador **incluye todo lo que se gastó con esta key desde que se creó**, no solo esta misión.
+
+### Costo de la misión según el repo
+
+El costo del agente sale de los logs y el del juez, de los `.eval.json`. Los dos los suma `scripts/summarize_agent_runs.py` (ver `experimentos/agente/RESULTS.md` y `experimentos/agente_mcp/RESULTS.md`). En USD:
+
 | Parte | Agente | Juez | Total |
 |---|---|---|---|
 | 1 (sin LLM) | 0 | 0 | 0 |
-| 2: 7 corridas de `experimentos/agente/` | USD 0,0283 | USD 0,1205 | USD 0,1488 |
-| 2: prueba de humo de 2 preguntas, fuera de `experimentos/` | USD 0,0011 | — | USD 0,0011 |
+| 2: 7 corridas de `experimentos/agente/` | 0,028260 | 0,120460 | 0,148720 |
+| 3: 3 corridas de `experimentos/agente_mcp/` | 0,011307 | 0,052260 | 0,063567 |
+| 3: primer intento fallido de la corrida de dev (por el contador de la key; su log se sobrescribió) | 0,003292 | — | 0,003292 |
+| **Total con respaldo en el repo** | **0,042859** | **0,172720** | **0,215579** |
+| 2: prueba de humo de 2 preguntas, fuera de `experimentos/` y sin archivo en el repo | 0,0011 | — | 0,0011 |
 
-Los números de la Parte 2 salen de los logs y de los `.eval.json` (ver `experimentos/agente/RESULTS.md`). Las partes 3 a 5 quedan pendientes, igual que contrastar el total con el dashboard de actividad de OpenRouter.
+Por modelo: el agente (`deepseek/deepseek-v4-flash-0731`) costó USD 0,042859 y el juez (`google/gemini-3.7-flash`), USD 0,172720. El juez es el 80 % del gasto.
+
+### Contraste con el contador de la key
+
+| Tramo | Registros del repo | Contador de la key | Diferencia (contador − registros) |
+|---|---|---|---|
+| Hasta antes de la Parte 3 | 0,148720 (Parte 2) | 0,247026 (lectura antes de la Parte 3) | +0,098306 |
+| Parte 3 | 0,066859 | 0,063462 (de 0,247026 a 0,310488) | −0,003397 |
+| Después de la última lectura de la Parte 3 | 0 | 0,003403 (de 0,310488 a 0,313891) | +0,003403 |
+| **Total** | **0,215579** | **0,313891** (lectura del 2026-10-09; límite de la key: USD 1,00) | **+0,098312** |
+
+- **Casi toda la diferencia es anterior a la Parte 3:** unos USD 0,098. La prueba de humo de la Parte 2 explicaría USD 0,0011 de ese monto. Sin ella quedan unos USD 0,097.
+- **La diferencia de la Parte 3 se compensa con lo que el contador subió después:** durante la Parte 3 el contador subió USD 0,003397 menos que los registros. Después de la última lectura subió USD 0,003403, aunque no hicimos ninguna llamada paga: solo consultamos `/api/v1/key`, que no cobra. Es posible que el contador todavía no hubiera sumado las últimas evaluaciones cuando lo leímos, pero no lo pudimos confirmar.
+- **La API informa también un uso semanal (USD 0,086) y uno mensual (USD 0,236).** No verificamos si el mensual corresponde al mes calendario. Si fuera así, unos USD 0,078 del contador serían anteriores a octubre y, por lo tanto, anteriores a esta misión.
+
+**La diferencia de unos USD 0,098 no se pudo atribuir con certeza.** Las causas posibles son otras pruebas o misiones hechas con la misma key, o llamadas que no quedaron registradas en los archivos del repo. No pudimos confirmar ninguna de las dos.
 
 ## Apéndice: tablas completas de la Parte 1
 
