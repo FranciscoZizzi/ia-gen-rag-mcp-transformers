@@ -186,3 +186,37 @@ python3 servidor_mcp.py [--api-url <url>] [--config config/agent_retriever.json]
 - [x] Benchmark run on dev with its log and `.eval.json` in `experimentos/agente_mcp/`, copied to `respuestas_mcp.*` (routing 1.00, 5.00 / 5.00 / 5.00; plus a dev repetition and the extra set).
 - [x] `INFORME.md` compares the four metrics and the cost with Part 2 and explains any difference from the logs (all within run-to-run noise; A10, Y09 and Y12 analysed).
 - [x] MCP Inspector screenshots of the six tools in `experimentos/inspector/` (connection, `tools/list` and one call per tool; launched with `connectionTimeout` 300000 ms, see `INFORME.md`).
+
+# SPEC — Part 4: an attention layer in NumPy
+
+Plan: `docs/plans/part4-atencion.md`.
+
+## Contract
+
+```bash
+python3 atencion/test_atencion.py atencion.py   # the graders' 14 tests, file unmodified
+```
+
+`atencion.py`, at the repository root, imports NumPy and nothing else. Row vectors throughout: `X` is (n, d), one token per row, and a projection is `X @ W` with `W` of shape (d, d_k).
+
+| Function | Returns | Behavior |
+|---|---|---|
+| `softmax(M)` | array like `M` | Over the last axis; subtracts each row's maximum before `exp`, so large scores do not overflow and `-inf` gives exactly 0 |
+| `atencion(Q, K, V, mascara=False)` | `(salida, A)` | `A = softmax(Q K^T / sqrt(d_k))` with `d_k = K.shape[-1]`, `salida = A V`. With `mascara=True`, scores above the diagonal are set to `-inf` before the softmax |
+| `autoatencion(X, Wq, Wk, Wv, mascara=False)` | `(salida, A)` | `atencion(X Wq, X Wk, X Wv, mascara)` |
+| `multicabeza(X, cabezas, Wo, mascara=False)` | `salida` | `cabezas` is a list of `(Wq, Wk, Wv)`, each head with its own `d_k`; the heads' outputs are concatenated along the last axis in list order and multiplied by `Wo` |
+| `layer_norm(x, eps=1e-5)` | array like `x` | Per row (last axis): `(x - mean) / sqrt(var + eps)`, population variance, no gamma or beta |
+
+No value is hard-coded: the class example ("the cat sat", d = 4) is only the tests' input.
+
+## Tested seam
+
+| Seam | Covers |
+|---|---|
+| `atencion/test_atencion.py`, unmodified | The 14 graders' tests; `tests/test_atencion_catedra.py` runs it as a subprocess so `pytest` covers it |
+
+## Acceptance
+
+- [x] The 14 tests of `atencion/test_atencion.py` pass against `atencion.py`, with the file as delivered.
+- [x] `atencion.py` uses NumPy only.
+- [x] `pytest` passes offline, including the graders' attention tests.
