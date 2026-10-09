@@ -10,8 +10,15 @@ import numpy as np
 
 
 def softmax(M):
-    """Turn each row of scores into probabilities: non-negative and summing to 1 (last axis)."""
-    raise NotImplementedError
+    """Turn each row of scores into probabilities: non-negative and summing to 1 (last axis).
+
+    softmax(z)_i = exp(z_i) / sum_j exp(z_j). Subtracting the row maximum first leaves the result unchanged
+    (it cancels between numerator and denominator) but keeps exp from overflowing: exp(1000) is inf,
+    exp(0) is 1. A score of -inf (a masked position) becomes exactly 0.
+    """
+    M = np.asarray(M, dtype=float)
+    e = np.exp(M - M.max(axis=-1, keepdims=True))
+    return e / e.sum(axis=-1, keepdims=True)
 
 
 def atencion(Q, K, V, mascara=False):
